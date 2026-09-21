@@ -1,0 +1,221 @@
+local DataStoreService = game:GetService("DataStoreService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
+
+local DataService = {}
+local DATA_STORE_NAME = "ConstructionTycoonData_v2"
+
+local dataStore
+local isDataStoreAvailable = false
+
+-- Hızlı ve güvenli DataStore ilklendirme (Studio'da bekleme yapmaz)
+if RunService:IsStudio() then
+	isDataStoreAvailable = false
+	print("[DataService] Studio yerel modu: Anında oturum içi bellek aktif edildi.")
+else
+	local success, err = pcall(function()
+		dataStore = DataStoreService:GetDataStore(DATA_STORE_NAME)
+		isDataStoreAvailable = true
+	end)
+	if success then
+		print("[DataService] Şantiye DataStore bulut bağlantısı sağlandı.")
+	else
+		warn("[DataService] DataStore kapalı: " .. tostring(err))
+	end
+end
+
+-- Aktif oyuncu profilleri
+local profiles = {}
+
+local function createDefaultProfile()
+	return {
+		Cash = GameConfig.STARTING_CASH,
+		Crystals = GameConfig.STARTING_CRYSTALS or 25,
+		Engineers = GameConfig.STARTING_ENGINEERS or 0.0,
+		LastEngineerTime = os.time(),
+		MaterialDelivery = GameConfig.BASE_MATERIAL_FLOW,
+		LogisticsLevel = 0,
+		ActivePlotIndex = 1,
+		Upgrades = {
+			Cash = {},
+			Crystals = {},
+			Engineers = {},
+		},
+		Garage = {
+			Owned = { Scooter = true },
+			Active = "Scooter",
+		},
+		CargoCarried = 0,
+		Plots = {
+			[1] = {
+				BuildingLevel = 1,
+				ProjectType = "IslandProject",
+				IsCompleted = false,
+			},
+		},
+		LastLogoutTime = os.time(),
+	}
+end
+
+function DataService.LoadPlayer(player: Player)
+	local userId = player.UserId
+	local profile
+
+	if isDataStoreAvailable then
+		local loadSuccess, storedData = pcall(function()
+			return dataStore:GetAsync("Contractor_" .. userId)
+		end)
+
+		if loadSuccess and storedData and type(storedData) == "table" then
+			profile = storedData
+			local default = createDefaultProfile()
+			for k, v in pairs(default) do
+				if profile[k] == nil then
+					profile[k] = v
+				end
+			end
+			if not profile.Plots or type(profile.Plots) ~= "table" then
+				profile.Plots = default.Plots
+			end
+			print(string.format("[DataService] Müteahhit %s şirket verileri yüklendi. Kasa: %d$", player.Name, profile.Cash))
+		else
+			profile = createDefaultProfile()
+			print(string.format("[DataService] %s için yeni inşaat şirketi açıldı.", player.Name))
+		end
+	else
+		profile = createDefaultProfile()
+	end
+
+	profiles[player] = profile
+	return profile
+end
+
+function DataService.GetProfile(player: Player)
+	return profiles[player]
+end
+
+function DataService.AddCash(player: Player, amount: number)
+	local profile = profiles[player]
+	if profile and amount > 0 then
+		profile.Cash += amount
+		return profile.Cash
+	end
+	return 0
+end
+
+function DataService.SpendCash(player: Player, amount: number): boolean
+	local profile = profiles[player]
+	if profile and profile.Cash >= amount then
+		profile.Cash -= amount
+		return true
+	end
+	return false
+end
+
+function DataService.AddCrystals(player: Player, amount: number)
+	local profile = profiles[player]
+	if profile and amount > 0 then
+		profile.Crystals = (profile.Crystals or 0) + amount
+		return profile.Crystals
+	end
+	return 0
+end
+
+function DataService.SpendCrystals(player: Player, amount: number): boolean
+	local profile = profiles[player]
+	if profile and (profile.Crystals or 0) >= amount then
+		profile.Crystals -= amount
+		return true
+	end
+	return false
+end
+
+function DataService.AddEngineers(player: Player, amount: number)
+	local profile = profiles[player]
+	if profile and amount > 0 then
+		profile.Engineers = (profile.Engineers or 0.0) + amount
+		return profile.Engineers
+	end
+	return 0
+end
+
+function DataService.SpendEngineers(player: Player, amount: number): boolean
+	local profile = profiles[player]
+	if profile and (profile.Engineers or 0.0) >= amount then
+		profile.Engineers -= amount
+		return true
+	end
+	return false
+end
+
+function DataService.GetUpgradeLevel(player: Player, tabName: string, categoryId: string): number
+	local profile = profiles[player]
+	if profile and profile.Upgrades and profile.Upgrades[tabName] then
+		return profile.Upgrades[tabName][categoryId] or 0
+	end
+	return 0
+end
+
+function DataService.SetUpgradeLevel(player: Player, tabName: string, categoryId: string, level: number)
+	local profile = profiles[player]
+	if profile then
+		if not profile.Upgrades then profile.Upgrades = {} end
+		if not profile.Upgrades[tabName] then profile.Upgrades[tabName] = {} end
+		profile.Upgrades[tabName][categoryId] = level
+	end
+end
+
+function DataService.OwnsVehicle(player: Player, vehicleId: string): boolean
+	local profile = profiles[player]
+	if vehicleId == "Scooter" then return true end
+	if profile and profile.Garage and profile.Garage.Owned then
+		return profile.Garage.Owned[vehicleId] == true
+	end
+	return false
+end
+
+function DataService.AddVehicle(player: Player, vehicleId: string)
+	local profile = profiles[player]
+	if profile then
+		if not profile.Garage then profile.Garage = { Owned = { Scooter = true }, Active = "Scooter" } end
+		if not profile.Garage.Owned then profile.Garage.Owned = { Scooter = true } end
+		profile.Garage.Owned[vehicleId] = true
+		profile.Garage.Active = vehicleId
+	end
+end
+
+function DataService.SavePlayer(player: Player)
+	local profile = profiles[player]
+	if not profile then return end
+
+	profile.LastLogoutTime = os.time()
+
+	if isDataStoreAvailable then
+		local saveSuccess, saveErr = pcall(function()
+			dataStore:SetAsync("Contractor_" .. player.UserId, profile)
+		end)
+
+		if not saveSuccess then
+			warn(string.format("[DataService] %s verileri kaydedilemedi: %s", player.Name, tostring(saveErr)))
+		else
+			print(string.format("[DataService] %s inşaat portföyü kaydedildi.", player.Name))
+		end
+	end
+end
+
+function DataService.UnloadPlayer(player: Player)
+	DataService.SavePlayer(player)
+	profiles[player] = nil
+end
+
+game:BindToClose(function()
+	print("[DataService] Sunucu kapanıyor, tüm müteahhit verileri kaydediliyor...")
+	for _, player in ipairs(Players:GetPlayers()) do
+		DataService.SavePlayer(player)
+	end
+end)
+
+return DataService

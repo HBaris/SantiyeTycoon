@@ -1,0 +1,11 @@
+# Roblox Studio lock file
+*.rbxl.lock
+*.rbxlx.lock
+
+# Python cache
+__pycache__/
+*.pyc
+
+# OS files
+Thumbs.db
+.DS_Store
