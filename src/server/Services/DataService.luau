@@ -48,6 +48,11 @@ local function createDefaultProfile()
 			Owned = { Scooter = true },
 			Active = "Scooter",
 		},
+		VehicleUpgrades = {
+			Scooter = { Speed = 0, Torque = 0, Cargo = 0 },
+			Motorcycle = { Speed = 0, Torque = 0, Cargo = 0 },
+			Car = { Speed = 0, Torque = 0, Cargo = 0 },
+		},
 		CargoCarried = 0,
 		Plots = {
 			[1] = {
@@ -185,6 +190,31 @@ function DataService.AddVehicle(player: Player, vehicleId: string)
 		profile.Garage.Owned[vehicleId] = true
 		profile.Garage.Active = vehicleId
 	end
+end
+
+function DataService.GetVehicleUpgrade(player: Player, vehicleId: string, upgradeKey: string): number
+	local profile = profiles[player]
+	if profile and profile.VehicleUpgrades and profile.VehicleUpgrades[vehicleId] then
+		return profile.VehicleUpgrades[vehicleId][upgradeKey] or 0
+	end
+	return 0
+end
+
+function DataService.SetVehicleUpgrade(player: Player, vehicleId: string, upgradeKey: string, level: number)
+	local profile = profiles[player]
+	if profile then
+		if not profile.VehicleUpgrades then profile.VehicleUpgrades = {} end
+		if not profile.VehicleUpgrades[vehicleId] then profile.VehicleUpgrades[vehicleId] = {} end
+		profile.VehicleUpgrades[vehicleId][upgradeKey] = level
+	end
+end
+
+function DataService.GetAllVehicleUpgrades(player: Player, vehicleId: string): { [string]: number }
+	local profile = profiles[player]
+	if profile and profile.VehicleUpgrades and profile.VehicleUpgrades[vehicleId] then
+		return profile.VehicleUpgrades[vehicleId]
+	end
+	return { Speed = 0, Torque = 0, Cargo = 0 }
 end
 
 function DataService.SavePlayer(player: Player)

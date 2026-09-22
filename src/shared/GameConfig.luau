@@ -138,4 +138,115 @@ GameConfig.VEHICLES = {
 GameConfig.CARGO_BOOST_DURATION = 45.0 -- 45 saniyelik turbo kargo etkisi
 GameConfig.CARGO_BOOST_MULTIPLIER = 2.5 -- 2.5x inşaat hızı
 
+-- ============================================================================
+-- YENİ: ARAÇ İÇİ GELİŞTİRME & MODİFİYE SİSTEMİ (Vehicle Tuning)
+-- ============================================================================
+GameConfig.VEHICLE_UPGRADES = {
+	Speed = {
+		Name = "Azami Sürat",
+		Icon = "⚡",
+		MaxLevel = 5,
+		BaseCost = 350,
+		CostMultiplier = 1.9,
+		Currency = "Cash",
+		BonusPerLevel = 6, -- Her seviyede +6 km/s azami hız
+	},
+	Torque = {
+		Name = "Hızlanma & Motor Torku",
+		Icon = "🚀",
+		MaxLevel = 5,
+		BaseCost = 450,
+		CostMultiplier = 2.0,
+		Currency = "Cash",
+		BonusPerLevel = 8, -- Her seviyede +8 tork / ivmelenme
+	},
+	Cargo = {
+		Name = "Bagaj & Kasa Kapasitesi",
+		Icon = "📦",
+		MaxLevel = 5,
+		BaseCost = 8,
+		CostMultiplier = 1.7,
+		Currency = "Crystals", -- Değerli kargo genişletmesi kristal ile yapılır
+		BonusMultiplierPerLevel = 0.35, -- Her seviyede +%35 daha fazla malzeme kapasitesi
+	},
+}
+
+function GameConfig.GetVehicleUpgradeCost(upgradeKey: string, currentLevel: number): number
+	local data = GameConfig.VEHICLE_UPGRADES[upgradeKey]
+	if not data then return 0 end
+	if currentLevel >= data.MaxLevel then return 0 end
+	return math.floor(data.BaseCost * (data.CostMultiplier ^ currentLevel))
+end
+
+-- ============================================================================
+-- YENİ: OTOMATİK TİCARİ DÜKKANLAR (Ground Floor Commercial Shops)
+-- ============================================================================
+GameConfig.COMMERCIAL_SHOPS = {
+	Market = {
+		Id = "Market",
+		Name = "Şantiye Gross Market",
+		Icon = "🛒",
+		Color = Color3.fromRGB(46, 175, 80),
+		AwningColor = Color3.fromRGB(255, 255, 255),
+		AwningStripeColor = Color3.fromRGB(46, 175, 80),
+		RentPerSecond = 35,
+		Desc = "Taze gıda, atıştırmalık ve günlük ihtiyaç reyonları.",
+	},
+	Bakery = {
+		Id = "Bakery",
+		Name = "Taş Fırın & Pastane",
+		Icon = "🥖",
+		Color = Color3.fromRGB(220, 140, 45),
+		AwningColor = Color3.fromRGB(245, 235, 220),
+		AwningStripeColor = Color3.fromRGB(200, 110, 30),
+		RentPerSecond = 40,
+		Desc = "Sıcak simitler, köy ekmekleri ve taze unlu mamuller.",
+	},
+	Barber = {
+		Id = "Barber",
+		Name = "Modern Kuaför & Berber",
+		Icon = "💈",
+		Color = Color3.fromRGB(40, 120, 220),
+		AwningColor = Color3.fromRGB(255, 255, 255),
+		AwningStripeColor = Color3.fromRGB(220, 50, 50),
+		RentPerSecond = 45,
+		Desc = "Saç, sakal ve modern şehirli bakım salonu.",
+	},
+	PetShop = {
+		Id = "PetShop",
+		Name = "Pati Dostları Petshop",
+		Icon = "🐾",
+		Color = Color3.fromRGB(160, 60, 200),
+		AwningColor = Color3.fromRGB(255, 240, 255),
+		AwningStripeColor = Color3.fromRGB(160, 60, 200),
+		RentPerSecond = 50,
+		Desc = "Kedi-köpek mamaları, tasmalar ve akvaryum ürünleri.",
+	},
+	Restaurant = {
+		Id = "Restaurant",
+		Name = "Cadde Kafe & Bistro",
+		Icon = "☕",
+		Color = Color3.fromRGB(180, 50, 50),
+		AwningColor = Color3.fromRGB(250, 240, 230),
+		AwningStripeColor = Color3.fromRGB(160, 40, 40),
+		RentPerSecond = 65,
+		Desc = "Dış mekan şemsiyeli masalarıyla gurme lezzetler.",
+	},
+}
+
+-- ============================================================================
+-- YENİ: CITIES: SKYLINES SİVİL MAHALLE YAŞAMI (Residents & Props)
+-- ============================================================================
+GameConfig.CITY_RESIDENTS = {
+	Names = { "Ayşe", "Mehmet", "Zeynep", "Caner", "Elif", "Deniz", "Burak", "Selin", "Murat", "Ece" },
+	Roles = { "Mahalle Sakini", "Kahve Sever", "Alışverişte", "Yürüyüşte", "Kitap Okuru", "Flanör" },
+	Outfits = {
+		{ Shirt = Color3.fromRGB(50, 110, 200), Pants = Color3.fromRGB(40, 40, 50) },
+		{ Shirt = Color3.fromRGB(220, 80, 70), Pants = Color3.fromRGB(230, 230, 235) },
+		{ Shirt = Color3.fromRGB(50, 160, 90), Pants = Color3.fromRGB(60, 60, 70) },
+		{ Shirt = Color3.fromRGB(180, 70, 170), Pants = Color3.fromRGB(30, 30, 35) },
+		{ Shirt = Color3.fromRGB(240, 180, 40), Pants = Color3.fromRGB(45, 65, 100) },
+	},
+}
+
 return GameConfig

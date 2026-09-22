@@ -99,6 +99,8 @@ RunService.RenderStepped:Connect(function()
 
 		local model = currentSeat.Parent
 		local vType = model and model:GetAttribute("VehicleType") or "Taşıt"
-		infoText.Text = string.format("🎮 %s | W, A, S, D Sür | Space İn", vType)
+		local effectiveCargo = model and model:GetAttribute("EffectiveCargo") or 15
+		infoText.Text = string.format("🎮 %s (Maks: %d) | [G] Garaj | Space İn", vType, currentSeat.MaxSpeed)
+		cargoBadge.Text = string.format("📦 Kasa: %d Kapasite", effectiveCargo)
 	end
 end)

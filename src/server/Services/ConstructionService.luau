@@ -73,11 +73,14 @@ local function calculateTotalProductionRate(player: Player, isTurbo: boolean): (
 		end
 
 		totalSpeed += plotSpeed
+
+		-- Şehirleşme / Dükkan Ticari Kira Geliri
+		totalCommercialRent += IslandManager.GetCommercialRent(plotData.BuildingLevel)
 	end
 
 	local turboMultiplier = isTurbo and GameConfig.BOOST_MULTIPLIER or 1.0
 	local finalSpeed = totalSpeed * turboMultiplier * multipliers.ProductionMultiplier * multipliers.SpeedMultiplier
-	local finalCashPerSec = math.floor(finalSpeed * GameConfig.PROGRESS_TO_CASH_RATIO)
+	local finalCashPerSec = math.floor((finalSpeed * GameConfig.PROGRESS_TO_CASH_RATIO) + totalCommercialRent)
 
 	return finalSpeed, finalCashPerSec
 end

@@ -46,6 +46,9 @@ if RunService:IsServer() then
 	Network.SyncUpgradesEvent = ensureRemote("SyncUpgradesEvent", false)
 	Network.SyncResourcesEvent = ensureRemote("SyncResourcesEvent", false)
 	Network.OpenProjectSelectionEvent = ensureRemote("OpenProjectSelectionEvent", false)
+	Network.UpgradeVehicleEvent = ensureRemote("UpgradeVehicleEvent", false)
+	Network.OpenGarageEvent = ensureRemote("OpenGarageEvent", false)
+	Network.SyncVehicleUpgradesEvent = ensureRemote("SyncVehicleUpgradesEvent", false)
 else
 	remoteFolder = ReplicatedStorage:WaitForChild(FOLDER_NAME) :: Folder
 
@@ -70,6 +73,9 @@ else
 	Network.SyncUpgradesEvent = remoteFolder:WaitForChild("SyncUpgradesEvent") :: RemoteEvent
 	Network.SyncResourcesEvent = remoteFolder:WaitForChild("SyncResourcesEvent") :: RemoteEvent
 	Network.OpenProjectSelectionEvent = remoteFolder:WaitForChild("OpenProjectSelectionEvent") :: RemoteEvent
+	Network.UpgradeVehicleEvent = remoteFolder:WaitForChild("UpgradeVehicleEvent") :: RemoteEvent
+	Network.OpenGarageEvent = remoteFolder:WaitForChild("OpenGarageEvent") :: RemoteEvent
+	Network.SyncVehicleUpgradesEvent = remoteFolder:WaitForChild("SyncVehicleUpgradesEvent") :: RemoteEvent
 end
 
 return Network

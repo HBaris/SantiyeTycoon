@@ -31,10 +31,22 @@ end
 -- ============================================================================
 local function buildVehicleModel(player: Player, vehicleType: string, spawnCFrame: CFrame): Model
 	local vData = GameConfig.VEHICLES[vehicleType] or GameConfig.VEHICLES.Scooter
+	local speedLvl = DataService.GetVehicleUpgrade(player, vehicleType, "Speed")
+	local torqueLvl = DataService.GetVehicleUpgrade(player, vehicleType, "Torque")
+	local cargoLvl = DataService.GetVehicleUpgrade(player, vehicleType, "Cargo")
+
+	local effectiveSpeed = vData.Speed + (speedLvl * (GameConfig.VEHICLE_UPGRADES.Speed.BonusPerLevel or 6))
+	local baseTorque = (vehicleType == "Scooter" and 15) or (vehicleType == "Motorcycle" and 25) or 40
+	local effectiveTorque = baseTorque + (torqueLvl * (GameConfig.VEHICLE_UPGRADES.Torque.BonusPerLevel or 8))
+	local effectiveCargo = math.floor(vData.CargoCapacity * (1.0 + (cargoLvl * (GameConfig.VEHICLE_UPGRADES.Cargo.BonusMultiplierPerLevel or 0.35))))
+
 	local model = Instance.new("Model")
 	model.Name = string.format("Vehicle_%s_%s", player.Name, vehicleType)
 	model:SetAttribute("OwnerUserId", player.UserId)
 	model:SetAttribute("VehicleType", vehicleType)
+	model:SetAttribute("EffectiveSpeed", effectiveSpeed)
+	model:SetAttribute("EffectiveTorque", effectiveTorque)
+	model:SetAttribute("EffectiveCargo", effectiveCargo)
 
 	local rootPart: BasePart
 
@@ -46,8 +58,8 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 		seat.CFrame = spawnCFrame * CFrame.new(0, 1.2, 0)
 		seat.Color = vData.Color
 		seat.Material = Enum.Material.Metal
-		seat.MaxSpeed = vData.Speed
-		seat.Torque = 15
+		seat.MaxSpeed = effectiveSpeed
+		seat.Torque = effectiveTorque
 		seat.TurnSpeed = 2.5
 		seat.Parent = model
 		rootPart = seat
@@ -84,8 +96,8 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 		seat.CFrame = spawnCFrame * CFrame.new(0, 1.5, 0)
 		seat.Color = vData.Color
 		seat.Material = Enum.Material.SmoothPlastic
-		seat.MaxSpeed = vData.Speed
-		seat.Torque = 25
+		seat.MaxSpeed = effectiveSpeed
+		seat.Torque = effectiveTorque
 		seat.TurnSpeed = 2.8
 		seat.Parent = model
 		rootPart = seat
@@ -119,8 +131,8 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 		seat.CFrame = spawnCFrame * CFrame.new(-1.2, 1.6, 0)
 		seat.Color = Color3.fromRGB(40, 40, 40)
 		seat.Material = Enum.Material.Fabric
-		seat.MaxSpeed = vData.Speed
-		seat.Torque = 40
+		seat.MaxSpeed = effectiveSpeed
+		seat.Torque = effectiveTorque
 		seat.TurnSpeed = 2.2
 		seat.Parent = model
 		rootPart = seat
@@ -226,16 +238,81 @@ function GarageService.Initialize()
 		end
 	end)
 
+function GarageService.GetEffectiveCargoCapacity(player: Player, vehicleType: string): number
+	local vData = GameConfig.VEHICLES[vehicleType] or GameConfig.VEHICLES.Scooter
+	local cargoLvl = DataService.GetVehicleUpgrade(player, vehicleType, "Cargo")
+	local bonusMult = 1.0 + (cargoLvl * (GameConfig.VEHICLE_UPGRADES.Cargo.BonusMultiplierPerLevel or 0.35))
+	return math.floor(vData.CargoCapacity * bonusMult)
+end
+
 	-- Kargo Malzemesi Yükleme İsteği (Ana Depodan)
 	Network.LoadCargoEvent.OnServerEvent:Connect(function(player: Player)
 		local profile = DataService.GetProfile(player)
 		if not profile then return end
 
 		local activeVType = (profile.Garage and profile.Garage.Active) or "Scooter"
-		local vData = GameConfig.VEHICLES[activeVType] or GameConfig.VEHICLES.Scooter
+		local effectiveCap = GarageService.GetEffectiveCargoCapacity(player, activeVType)
 
-		playerCargo[player] = vData.CargoCapacity
-		print(string.format("[GarageService] %s taşıtına %d birim şantiye malzemesi yükledi.", player.Name, vData.CargoCapacity))
+		playerCargo[player] = effectiveCap
+		print(string.format("[GarageService] %s taşıtına %d birim şantiye malzemesi yükledi (Geliştirilmiş).", player.Name, effectiveCap))
+	end)
+
+	-- Taşıt İçi Geliştirme (Tuning / Upgrade) Dinleyicisi
+	Network.UpgradeVehicleEvent.OnServerEvent:Connect(function(player: Player, vehicleId: string, upgradeKey: string)
+		local uData = GameConfig.VEHICLE_UPGRADES[upgradeKey]
+		if not uData then return end
+
+		local currentLvl = DataService.GetVehicleUpgrade(player, vehicleId, upgradeKey)
+		if currentLvl >= uData.MaxLevel then return end
+
+		local cost = GameConfig.GetVehicleUpgradeCost(upgradeKey, currentLvl)
+		local canAfford = false
+
+		if uData.Currency == "Cash" then
+			canAfford = DataService.SpendCash(player, cost)
+		elseif uData.Currency == "Crystals" then
+			canAfford = DataService.SpendCrystals(player, cost)
+		end
+
+		if canAfford then
+			local newLvl = currentLvl + 1
+			DataService.SetVehicleUpgrade(player, vehicleId, upgradeKey, newLvl)
+
+			-- Eğer bu oyuncunun şu an aktif spawnlı taşıtıysa özelliklerini anında güncelle
+			local currentModel = playerVehicles[player]
+			if currentModel and currentModel:GetAttribute("VehicleType") == vehicleId then
+				local seat = currentModel:FindFirstChild("Seat") :: VehicleSeat
+				if seat then
+					if upgradeKey == "Speed" then
+						local vData = GameConfig.VEHICLES[vehicleId] or GameConfig.VEHICLES.Scooter
+						seat.MaxSpeed = vData.Speed + (newLvl * uData.BonusPerLevel)
+						currentModel:SetAttribute("EffectiveSpeed", seat.MaxSpeed)
+					elseif upgradeKey == "Torque" then
+						local baseTorque = (vehicleId == "Scooter" and 15) or (vehicleId == "Motorcycle" and 25) or 40
+						seat.Torque = baseTorque + (newLvl * uData.BonusPerLevel)
+						currentModel:SetAttribute("EffectiveTorque", seat.Torque)
+					elseif upgradeKey == "Cargo" then
+						local cap = GarageService.GetEffectiveCargoCapacity(player, vehicleId)
+						currentModel:SetAttribute("EffectiveCargo", cap)
+					end
+				end
+			end
+
+			-- İstemciye güncellenen seviyeleri ve kaynakları senkronize et
+			local allUpgrades = DataService.GetAllVehicleUpgrades(player, vehicleId)
+			Network.SyncVehicleUpgradesEvent:FireClient(player, vehicleId, allUpgrades)
+
+			local profile = DataService.GetProfile(player)
+			if profile then
+				Network.SyncResourcesEvent:FireClient(player, profile.Cash, profile.Crystals, profile.Engineers)
+				local leaderstats = player:FindFirstChild("leaderstats")
+				if leaderstats then
+					local cashVal = leaderstats:FindFirstChild("💰 Kasa ($)") :: IntValue
+					if cashVal then cashVal.Value = profile.Cash end
+				end
+			end
+			print(string.format("[GarageService] %s %s için %s yükseltmesini Lv.%d yaptı!", player.Name, vehicleId, upgradeKey, newLvl))
+		end
 	end)
 
 	-- Kargo Boşaltma ve Şantiyeye Teslimat (2.5x Turbo Boost Tetikler)
@@ -260,10 +337,14 @@ function GarageService.Initialize()
 		end
 	end)
 
-	-- Oyuncu katıldığında varsayılan taşıtını hazırla
+	-- Oyuncu katıldığında varsayılan taşıtını hazırla ve yükseltmelerini senkronize et
 	Players.PlayerAdded:Connect(function(player)
 		task.delay(1.5, function()
 			GarageService.SpawnVehicle(player, "Scooter")
+			for _, vId in ipairs({ "Scooter", "Motorcycle", "Car" }) do
+				local allUpgrades = DataService.GetAllVehicleUpgrades(player, vId)
+				Network.SyncVehicleUpgradesEvent:FireClient(player, vId, allUpgrades)
+			end
 		end)
 	end)
 
@@ -351,6 +432,40 @@ function GarageService.EnsureGarageEnvironment()
 	local lCorner = Instance.new("UICorner")
 	lCorner.CornerRadius = UDim.new(0, 10)
 	lCorner.Parent = loadText
+
+	-- Araç Modifiye & Garaj İstasyonu (Tuning Pad)
+	local tuningPad = createPart(folder, "VehicleTuningPad", Vector3.new(14, 0.8, 14), CFrame.new(depotX + 14, 4.5, depotZ + 12), Color3.fromRGB(40, 140, 240), Enum.Material.SmoothPlastic, true)
+	local tunePrompt = Instance.new("ProximityPrompt")
+	tunePrompt.ActionText = "Garajı Aç"
+	tunePrompt.ObjectText = "🛠️ Araç Modifiye & Geliştir"
+	tunePrompt.HoldDuration = 0
+	tunePrompt.MaxActivationDistance = 18
+	tunePrompt.KeyboardKeyCode = Enum.KeyCode.E
+	tunePrompt.RequiresLineOfSight = false
+	tunePrompt.Parent = tuningPad
+
+	tunePrompt.Triggered:Connect(function(player)
+		Network.OpenGarageEvent:FireClient(player)
+	end)
+
+	local tuneSign = Instance.new("BillboardGui")
+	tuneSign.Size = UDim2.new(8, 0, 3, 0)
+	tuneSign.StudsOffset = Vector3.new(0, 4, 0)
+	tuneSign.AlwaysOnTop = true
+	tuneSign.Parent = tuningPad
+
+	local tuneText = Instance.new("TextLabel")
+	tuneText.Size = UDim2.new(1, 0, 1, 0)
+	tuneText.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	tuneText.Text = "🛠️ GARAJ & MODİFİYE\n(E'ye basarak aç)"
+	tuneText.TextColor3 = Color3.fromRGB(20, 20, 20)
+	tuneText.Font = Enum.Font.FredokaOne
+	tuneText.TextScaled = true
+	tuneText.Parent = tuneSign
+
+	local tCorner = Instance.new("UICorner")
+	tCorner.CornerRadius = UDim.new(0, 10)
+	tCorner.Parent = tuneText
 
 	return folder
 end

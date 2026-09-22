@@ -112,6 +112,12 @@ def main():
             "name": "CraneRotator",
             "class": "LocalScript"
         },
+        {
+            "path": os.path.join(base_dir, "client", "GarageUI.client.luau"),
+            "parent": 'game:GetService("StarterPlayer"):WaitForChild("StarterPlayerScripts"):WaitForChild("Client")',
+            "name": "GarageUI",
+            "class": "LocalScript"
+        },
     ]
 
     for item in files_to_sync:

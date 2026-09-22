@@ -381,11 +381,12 @@ local function buildBuildingModel(parent: Instance, origin: Vector3, level: numb
 		local groundLobby = createPart(buildingModel, "LobbyStructure", Vector3.new(towerW + 2, 7, towerD + 2), CFrame.new(bX, bY + 3.5, bZ), Color3.fromRGB(230, 230, 235), Enum.Material.Concrete, true, true)
 		buildingModel.PrimaryPart = groundLobby
 
-		-- Lobi Ön Cephe Camı
-		createPart(buildingModel, "LobbyGlass", Vector3.new(towerW - 2, 6, 0.5), CFrame.new(bX, bY + 3.5, bZ + (towerD / 2) + 1), Color3.fromRGB(160, 220, 255), Enum.Material.Glass, true, false)
-		-- Giriş Çelik Saçağı (Canopy)
-		createPart(buildingModel, "EntranceCanopy", Vector3.new(10, 0.8, 5), CFrame.new(bX, bY + 5.5, bZ + (towerD / 2) + 3.5), Color3.fromRGB(45, 50, 60), Enum.Material.Metal, true, true)
-		createPart(buildingModel, "LobbyDoor", Vector3.new(4, 5, 0.6), CFrame.new(bX, bY + 2.8, bZ + (towerD / 2) + 1.1), Color3.fromRGB(40, 80, 120), Enum.Material.Glass, true, false)
+		-- Lobi Girişi ve 2 Alt Ticari Dükkan (Taş Fırın & Gross Market)
+		buildShopStorefront(buildingModel, CFrame.new(bX - 6.5, bY + 3.2, bZ + (towerD / 2) + 1.2), "Bakery", 9.5, 6.2)
+		buildShopStorefront(buildingModel, CFrame.new(bX + 6.5, bY + 3.2, bZ + (towerD / 2) + 1.2), "Market", 9.5, 6.2)
+		-- Orta Lobi Kapısı ve Giriş Çelik Saçağı (Canopy)
+		createPart(buildingModel, "EntranceCanopy", Vector3.new(4.5, 0.6, 4.5), CFrame.new(bX, bY + 5.5, bZ + (towerD / 2) + 2.8), Color3.fromRGB(45, 50, 60), Enum.Material.Metal, true, true)
+		createPart(buildingModel, "LobbyDoor", Vector3.new(3.2, 5, 0.6), CFrame.new(bX, bY + 2.8, bZ + (towerD / 2) + 1.1), Color3.fromRGB(40, 80, 120), Enum.Material.Glass, true, false)
 
 		-- 2. Ana Kule Gövdesi (4 Katlı Konut Bloğu)
 		createPart(buildingModel, "TowerBody", Vector3.new(towerW, towerH - 7, towerD), CFrame.new(bX, bY + 7 + ((towerH - 7) / 2), bZ), Color3.fromRGB(225, 220, 215), Enum.Material.Concrete, true, true)
@@ -440,10 +441,16 @@ local function buildBuildingModel(parent: Instance, origin: Vector3, level: numb
 		local atriumLobby = createPart(buildingModel, "SkyscraperLobby", Vector3.new(baseW + 2, lobbyHeight, baseD + 2), CFrame.new(bX, bY + (lobbyHeight / 2), bZ), Color3.fromRGB(240, 240, 245), Enum.Material.Concrete, true, true)
 		buildingModel.PrimaryPart = atriumLobby
 
-		-- Lobi Ön Cam Duvar & Kolonlar
-		createPart(buildingModel, "AtriumGlass", Vector3.new(baseW - 2, lobbyHeight - 2, 0.5), CFrame.new(bX, bY + (lobbyHeight / 2), bZ + (baseD / 2) + 1), Color3.fromRGB(140, 215, 255), Enum.Material.Glass, true, false)
-		for _, cx in ipairs({ -10, -3.5, 3.5, 10 }) do
-			createPart(buildingModel, "AtriumCol", Vector3.new(1.8, lobbyHeight, 1.8), CFrame.new(bX + cx, bY + (lobbyHeight / 2), bZ + (baseD / 2) + 1.4), Color3.fromRGB(80, 85, 95), Enum.Material.Metal, true, true)
+		-- Atriyum Zemin Katı ve 4'lü Ticari Cadde (Market, Kuaför, Petshop, Restoran)
+		buildShopStorefront(buildingModel, CFrame.new(bX - 8.5, bY + 3.4, bZ + (baseD / 2) + 1.2), "Market", 10.5, 6.5)
+		buildShopStorefront(buildingModel, CFrame.new(bX + 8.5, bY + 3.4, bZ + (baseD / 2) + 1.2), "Barber", 10.5, 6.5)
+		buildShopStorefront(buildingModel, CFrame.new(bX - (baseW / 2) - 1.2, bY + 3.4, bZ) * CFrame.Angles(0, math.rad(-90), 0), "PetShop", 11, 6.5)
+		buildShopStorefront(buildingModel, CFrame.new(bX + (baseW / 2) + 1.2, bY + 3.4, bZ) * CFrame.Angles(0, math.rad(90), 0), "Restaurant", 11, 6.5)
+
+		-- Merkez Atriyum Döner Kapı & Destek Kolonları
+		createPart(buildingModel, "AtriumDoor", Vector3.new(4, 5.5, 0.6), CFrame.new(bX, bY + 2.8, bZ + (baseD / 2) + 1.1), Color3.fromRGB(40, 140, 220), Enum.Material.Glass, true, false)
+		for _, cx in ipairs({ -3.2, 3.2 }) do
+			createPart(buildingModel, "AtriumCol", Vector3.new(1.4, lobbyHeight, 1.4), CFrame.new(bX + cx, bY + (lobbyHeight / 2), bZ + (baseD / 2) + 1.4), Color3.fromRGB(80, 85, 95), Enum.Material.Metal, true, true)
 		end
 
 		-- 2. Kademeli Yükselen Gökdelen Kulesi (Reflektif Mavi Cam & Metal Profiller)
@@ -709,6 +716,292 @@ local function spawnWorkerNPC(parent: Instance, name: string, role: string, cfra
 
 	npc.Parent = parent
 	return npc
+end
+
+-- ============================================================================
+-- 4c. OTOMATİK TİCARİ DÜKKANLAR (Ground Floor Commercial Shops)
+-- ============================================================================
+local function buildShopStorefront(parent: Instance, centerCF: CFrame, shopId: string, width: number, height: number): Model
+	local shopData = GameConfig.COMMERCIAL_SHOPS[shopId]
+	if not shopData then return nil end
+
+	local shopModel = Instance.new("Model")
+	shopModel.Name = "Shop_" .. shopId
+
+	local halfW = width / 2
+
+	-- 1. Vitrin Camı ve Çerçevesi
+	createPart(shopModel, "ShopFrame", Vector3.new(width, height, 0.6), centerCF, Color3.fromRGB(40, 45, 50), Enum.Material.Metal, true, true)
+	createPart(shopModel, "ShowcaseGlass", Vector3.new(width - 1.2, height - 1.4, 0.4), centerCF * CFrame.new(0, 0, 0.1), Color3.fromRGB(180, 230, 255), Enum.Material.Glass, true, false)
+
+	-- İç Mekan Sıcak Işığı
+	local interiorLight = createPart(shopModel, "InteriorLight", Vector3.new(1, 1, 1), centerCF * CFrame.new(0, height * 0.25, -2), Color3.fromRGB(255, 245, 200), Enum.Material.Neon, true, false)
+	interiorLight.Transparency = 0.5
+	local pt = Instance.new("PointLight")
+	pt.Color = Color3.fromRGB(255, 240, 200)
+	pt.Brightness = 1.2
+	pt.Range = 22
+	pt.Parent = interiorLight
+
+	-- İç Mekan Tezgahı
+	createPart(shopModel, "ShopCounter", Vector3.new(width - 2.5, 2.2, 1.6), centerCF * CFrame.new(0, -height/2 + 1.1, -1.8), Color3.fromRGB(120, 85, 45), Enum.Material.WoodPlanks, true, true)
+
+	-- 2. Çizgili Kumaş Tente (Awning)
+	local awningY = (height / 2) + 0.3
+	local awningZ = 2.0
+	local stripeCount = math.max(4, math.floor(width / 1.6))
+	local stripeW = width / stripeCount
+	for s = 1, stripeCount do
+		local sColor = (s % 2 == 1) and shopData.AwningColor or shopData.AwningStripeColor
+		local sOffset = -halfW + (s - 0.5) * stripeW
+		createPart(
+			shopModel, "AwningStripe_"..s,
+			Vector3.new(stripeW, 0.3, 3.6),
+			centerCF * CFrame.new(sOffset, awningY, awningZ) * CFrame.Angles(math.rad(22), 0, 0),
+			sColor,
+			Enum.Material.Fabric,
+			true, true
+		)
+	end
+
+	-- 3. 3D Neon Tabela
+	local signBoard = createPart(
+		shopModel, "SignBoard",
+		Vector3.new(width - 0.6, 1.8, 0.6),
+		centerCF * CFrame.new(0, (height / 2) + 1.6, 0.4),
+		shopData.Color,
+		Enum.Material.SmoothPlastic,
+		true, true
+	)
+	local sGui = Instance.new("SurfaceGui")
+	sGui.Face = Enum.NormalId.Front
+	sGui.Parent = signBoard
+	local sTxt = Instance.new("TextLabel")
+	sTxt.Size = UDim2.new(1, 0, 1, 0)
+	sTxt.BackgroundTransparency = 1
+	sTxt.Text = string.format("%s %s", shopData.Icon, shopData.Name:upper())
+	sTxt.TextColor3 = Color3.fromRGB(255, 255, 255)
+	sTxt.TextStrokeTransparency = 0.2
+	sTxt.TextStrokeColor3 = Color3.fromRGB(20, 20, 20)
+	sTxt.Font = Enum.Font.FredokaOne
+	sTxt.TextScaled = true
+	sTxt.Parent = sGui
+
+	-- 4. Dükkana Özel Zengin Detaylar
+	if shopId == "Restaurant" then
+		-- Dış Mekan Kafe Masaları ve Güneş Şemsiyesi
+		for _, tx in ipairs({ -halfW + 1.8, halfW - 1.8 }) do
+			local tableCF = centerCF * CFrame.new(tx, -height/2 + 1.3, 5.2)
+			createCylinder(shopModel, "CafeTable", Vector3.new(0.4, 2.6, 2.6), tableCF * CFrame.Angles(0, 0, math.pi/2), Color3.fromRGB(70, 50, 30), Enum.Material.WoodPlanks, true, true)
+			createPart(shopModel, "CafeChair1", Vector3.new(1.1, 1.1, 1.1), tableCF * CFrame.new(-1.6, -0.6, 0), Color3.fromRGB(60, 60, 65), Enum.Material.Metal, true, true)
+			createPart(shopModel, "CafeChair2", Vector3.new(1.1, 1.1, 1.1), tableCF * CFrame.new(1.6, -0.6, 0), Color3.fromRGB(60, 60, 65), Enum.Material.Metal, true, true)
+		end
+		-- Dev Kafe Şemsiyesi
+		createPart(shopModel, "UmbrellaPole", Vector3.new(0.4, 6.2, 0.4), centerCF * CFrame.new(0, -height/2 + 3.1, 5.2), Color3.fromRGB(200, 200, 200), Enum.Material.Metal, true, true)
+		createPart(shopModel, "UmbrellaTop", Vector3.new(6.5, 0.8, 6.5), centerCF * CFrame.new(0, -height/2 + 6.3, 5.2), Color3.fromRGB(180, 50, 50), Enum.Material.Fabric, true, false)
+
+	elseif shopId == "Barber" then
+		-- Dönen Klasik Kırmızı-Beyaz-Mavi Berber Silindiri
+		createCylinder(shopModel, "BarberPole", Vector3.new(2.6, 0.8, 0.8), centerCF * CFrame.new(halfW + 0.7, 0, 0.6) * CFrame.Angles(0, 0, math.pi/2), Color3.fromRGB(220, 50, 50), Enum.Material.Neon, true, true)
+		createPart(shopModel, "BarberCapTop", Vector3.new(1.1, 0.3, 1.1), centerCF * CFrame.new(halfW + 0.7, 1.4, 0.6), Color3.fromRGB(230, 230, 235), Enum.Material.Metal, true, true)
+		createPart(shopModel, "BarberCapBot", Vector3.new(1.1, 0.3, 1.1), centerCF * CFrame.new(halfW + 0.7, -1.4, 0.6), Color3.fromRGB(230, 230, 235), Enum.Material.Metal, true, true)
+
+	elseif shopId == "Bakery" then
+		-- Kara Tahta Menü ve Ekmek Kasaları
+		local chalk = createPart(shopModel, "ChalkBoard", Vector3.new(2.0, 3.0, 0.2), centerCF * CFrame.new(halfW + 1.0, -height/2 + 1.5, 2.2), Color3.fromRGB(35, 40, 45), Enum.Material.SmoothPlastic, true, true)
+		local cGui = Instance.new("SurfaceGui")
+		cGui.Face = Enum.NormalId.Front
+		cGui.Parent = chalk
+		local cLbl = Instance.new("TextLabel")
+		cLbl.Size = UDim2.new(1, 0, 1, 0)
+		cLbl.BackgroundTransparency = 1
+		cLbl.Text = "🥖 TAZE\nSİMİT & EKMEK\nFIRINDAN YENİ\nÇIKTI!"
+		cLbl.TextColor3 = Color3.fromRGB(255, 230, 180)
+		cLbl.Font = Enum.Font.FredokaOne
+		cLbl.TextScaled = true
+		cLbl.Parent = cGui
+
+	elseif shopId == "PetShop" then
+		-- Kulübe & Mama Kaseleri
+		createPart(shopModel, "DogHouse", Vector3.new(2.2, 2.0, 2.2), centerCF * CFrame.new(-halfW - 1.2, -height/2 + 1.0, 2.0), Color3.fromRGB(160, 90, 45), Enum.Material.Wood, true, true)
+		createPart(shopModel, "DogRoof", Vector3.new(2.6, 0.5, 2.6), centerCF * CFrame.new(-halfW - 1.2, -height/2 + 2.2, 2.0), Color3.fromRGB(180, 50, 50), Enum.Material.WoodPlanks, true, true)
+
+	elseif shopId == "Market" then
+		-- Meyve Kasaları
+		for i, crateX in ipairs({ -halfW - 1.1, -halfW - 2.5 }) do
+			createPart(shopModel, "FruitCrate_"..i, Vector3.new(1.3, 1.1, 1.3), centerCF * CFrame.new(crateX, -height/2 + 0.55, 2.0), Color3.fromRGB(170, 110, 55), Enum.Material.Wood, true, true)
+		end
+	end
+
+	shopModel.Parent = parent
+	return shopModel
+end
+
+-- ============================================================================
+-- 4d. CITIES: SKYLINES SİVİL MAHALLE SAKİNLERİ (Civilian Pedestrians)
+-- ============================================================================
+local function spawnCityResident(parent: Instance, name: string, role: string, outfit: any, startCF: CFrame, patrolDistance: number): Model
+	local npc = Instance.new("Model")
+	npc.Name = "Resident_" .. name
+
+	local root = createPart(npc, "HumanoidRootPart", Vector3.new(2, 2, 1), startCF, outfit.Pants, Enum.Material.Fabric, true, false)
+	npc.PrimaryPart = root
+
+	-- Gövde (Gündelik Şık Kıyafet)
+	local torso = createPart(npc, "Torso", Vector3.new(2, 2, 1), startCF, outfit.Shirt, Enum.Material.Fabric, true, false)
+
+	-- Kafa (Saçlı Şehirli Sakin)
+	local head = createPart(npc, "Head", Vector3.new(1.2, 1.2, 1.2), startCF * CFrame.new(0, 1.6, 0), Color3.fromRGB(250, 210, 160), Enum.Material.SmoothPlastic, true, false)
+	createPart(npc, "Hair", Vector3.new(1.3, 0.5, 1.3), startCF * CFrame.new(0, 2.1, -0.05), Color3.fromRGB(45, 30, 20), Enum.Material.SmoothPlastic, true, false)
+
+	-- Bacaklar ve Kollar
+	local legL = createPart(npc, "LegL", Vector3.new(0.8, 2, 0.8), startCF * CFrame.new(-0.55, -2, 0), outfit.Pants, Enum.Material.Fabric, true, false)
+	local legR = createPart(npc, "LegR", Vector3.new(0.8, 2, 0.8), startCF * CFrame.new(0.55, -2, 0), outfit.Pants, Enum.Material.Fabric, true, false)
+	local armL = createPart(npc, "ArmL", Vector3.new(0.8, 2, 0.8), startCF * CFrame.new(-1.4, 0, 0), outfit.Shirt, Enum.Material.Fabric, true, false)
+	local armR = createPart(npc, "ArmR", Vector3.new(0.8, 2, 0.8), startCF * CFrame.new(1.4, 0, 0), outfit.Shirt, Enum.Material.Fabric, true, false)
+
+	-- Kahve bardağı veya alışveriş çantası
+	if role == "Kahve Sever" then
+		createCylinder(npc, "CoffeeCup", Vector3.new(0.6, 0.35, 0.35), armR.CFrame * CFrame.new(0, -0.8, -0.3) * CFrame.Angles(0, 0, math.pi/2), Color3.fromRGB(245, 240, 230), Enum.Material.SmoothPlastic, true, false)
+	elseif role == "Alışverişte" then
+		createPart(npc, "ShoppingBag", Vector3.new(0.8, 1.0, 0.35), armL.CFrame * CFrame.new(0, -0.8, 0), Color3.fromRGB(240, 100, 80), Enum.Material.Fabric, true, false)
+	end
+
+	-- İsim Etiketi (BillboardGui - Beyaz Şık Kart)
+	local tagGui = Instance.new("BillboardGui")
+	tagGui.Size = UDim2.new(4.5, 0, 1.4, 0)
+	tagGui.StudsOffset = Vector3.new(0, 3.2, 0)
+	tagGui.AlwaysOnTop = true
+	tagGui.Parent = head
+
+	local tagCard = Instance.new("Frame")
+	tagCard.Size = UDim2.new(1, 0, 1, 0)
+	tagCard.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	tagCard.BackgroundTransparency = 0.1
+	tagCard.Parent = tagGui
+	local tcCorner = Instance.new("UICorner")
+	tcCorner.CornerRadius = UDim.new(0, 8)
+	tcCorner.Parent = tagCard
+
+	local tagLabel = Instance.new("TextLabel")
+	tagLabel.Size = UDim2.new(0.95, 0, 0.9, 0)
+	tagLabel.Position = UDim2.new(0.025, 0, 0.05, 0)
+	tagLabel.BackgroundTransparency = 1
+	tagLabel.Text = string.format("🚶 %s\n[%s]", name, role)
+	tagLabel.TextColor3 = Color3.fromRGB(20, 20, 20)
+	tagLabel.Font = Enum.Font.FredokaOne
+	tagLabel.TextScaled = true
+	tagLabel.Parent = tagCard
+
+	-- Canlı Yürüme / Devriye Davranışı (Kaldırımda sakince gezinme)
+	if patrolDistance and patrolDistance > 4 then
+		task.spawn(function()
+			local origPos = startCF.Position
+			local movingForward = true
+			local currentStep = 0
+			local maxSteps = math.floor(patrolDistance * 4)
+			local stepDist = patrolDistance / maxSteps
+
+			while npc.Parent do
+				task.wait(0.12)
+				if movingForward then
+					currentStep += 1
+					if currentStep >= maxSteps then
+						movingForward = false
+						task.wait(2.5) -- Vitrinde duraklama
+					end
+				else
+					currentStep -= 1
+					if currentStep <= 0 then
+						movingForward = true
+						task.wait(2.5)
+					end
+				end
+
+				local newX = origPos.X + (currentStep * stepDist)
+				local lookDir = movingForward and 1 or -1
+				local newCF = CFrame.new(newX, origPos.Y, origPos.Z) * CFrame.Angles(0, lookDir > 0 and 0 or math.pi, 0)
+
+				root.CFrame = newCF
+				torso.CFrame = newCF
+				head.CFrame = newCF * CFrame.new(0, 1.6, 0)
+				legL.CFrame = newCF * CFrame.new(-0.55, -2, 0)
+				legR.CFrame = newCF * CFrame.new(0.55, -2, 0)
+				armL.CFrame = newCF * CFrame.new(-1.4, 0, 0)
+				armR.CFrame = newCF * CFrame.new(1.4, 0, 0)
+			end
+		end)
+	end
+
+	npc.Parent = parent
+	return npc
+end
+
+-- ============================================================================
+-- 4e. KENTSEL YAŞAM OBJELERİ (Cities: Skylines Urban Props)
+-- ============================================================================
+local function spawnUrbanProps(parent: Instance, plotOrigin: Vector3): Model
+	local props = Instance.new("Model")
+	props.Name = "UrbanProps"
+
+	local pX, pZ = plotOrigin.X, plotOrigin.Z
+	local sidewalkZ = pZ + 36 -- Otoyol kenarı kaldırım hattı
+
+	-- 1. Cam Otobüs Durağı (Modern Glass Bus Stop)
+	local busStopCF = CFrame.new(pX - 18, 5.8, sidewalkZ)
+	createPart(props, "BusStopBack", Vector3.new(12, 7, 0.4), busStopCF * CFrame.new(0, 0, -2.5), Color3.fromRGB(190, 235, 255), Enum.Material.Glass, true, true)
+	createPart(props, "BusStopRoof", Vector3.new(13, 0.6, 6), busStopCF * CFrame.new(0, 3.6, 0.2), Color3.fromRGB(50, 55, 60), Enum.Material.Metal, true, true)
+	for _, sx in ipairs({ -5.8, 5.8 }) do
+		createPart(props, "BusStopSide", Vector3.new(0.4, 7, 4.5), busStopCF * CFrame.new(sx, 0, -0.4), Color3.fromRGB(190, 235, 255), Enum.Material.Glass, true, true)
+	end
+	createPart(props, "BusStopBench", Vector3.new(8, 1.2, 1.8), busStopCF * CFrame.new(0, -2.2, -1.2), Color3.fromRGB(130, 85, 45), Enum.Material.WoodPlanks, true, true)
+	local bSign = createPart(props, "BusSign", Vector3.new(3.5, 2.5, 0.3), busStopCF * CFrame.new(-6.2, 1.8, 2.2), Color3.fromRGB(30, 100, 220), Enum.Material.SmoothPlastic, true, true)
+	local bGui = Instance.new("SurfaceGui")
+	bGui.Face = Enum.NormalId.Front
+	bGui.Parent = bSign
+	local bLbl = Instance.new("TextLabel")
+	bLbl.Size = UDim2.new(1, 0, 1, 0)
+	bLbl.BackgroundTransparency = 1
+	bLbl.Text = "🚏 OTOBÜS DURAĞI\n(HAT 42: ŞANTİYE-KENT)"
+	bLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+	bLbl.Font = Enum.Font.FredokaOne
+	bLbl.TextScaled = true
+	bLbl.Parent = bGui
+
+	-- 2. Kırmızı Yangın Musluğu (Fire Hydrant)
+	local hydrantCF = CFrame.new(pX + 28, 5.2, sidewalkZ)
+	createCylinder(props, "HydrantBody", Vector3.new(2.4, 1.2, 1.2), hydrantCF * CFrame.Angles(0, 0, math.pi/2), Color3.fromRGB(220, 40, 40), Enum.Material.Metal, true, true)
+	createPart(props, "HydrantTop", Vector3.new(1.4, 0.6, 1.4), hydrantCF * CFrame.new(0, 1.4, 0), Color3.fromRGB(220, 40, 40), Enum.Material.Metal, true, true)
+
+	-- 3. Paslanmaz Çelik Şehir Çöp Kovası
+	local binCF = CFrame.new(pX + 24, 5.2, sidewalkZ)
+	createCylinder(props, "TrashBin", Vector3.new(2.6, 1.4, 1.4), binCF * CFrame.Angles(0, 0, math.pi/2), Color3.fromRGB(70, 75, 80), Enum.Material.Metal, true, true)
+
+	-- 4. Sokak İsim Levhası (Yeşil Şehir Tabelası)
+	local postCF = CFrame.new(pX + 32, 8.5, sidewalkZ)
+	createPart(props, "SignPole", Vector3.new(0.5, 8, 0.5), postCF, Color3.fromRGB(60, 65, 70), Enum.Material.Metal, true, true)
+	local stSign = createPart(props, "StreetNamePlate", Vector3.new(6.5, 1.2, 0.2), postCF * CFrame.new(0, 3.6, 0), Color3.fromRGB(35, 120, 60), Enum.Material.SmoothPlastic, true, true)
+	local stGui = Instance.new("SurfaceGui")
+	stGui.Face = Enum.NormalId.Front
+	stGui.Parent = stSign
+	local stLbl = Instance.new("TextLabel")
+	stLbl.Size = UDim2.new(1, 0, 1, 0)
+	stLbl.BackgroundTransparency = 1
+	stLbl.Text = "BARBAROS BULVARI"
+	stLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+	stLbl.Font = Enum.Font.FredokaOne
+	stLbl.TextScaled = true
+	stLbl.Parent = stGui
+
+	-- 5. Park Etmiş Sivil Otomobil (Civilian Sedan)
+	local carCF = CFrame.new(pX - 28, 5.4, sidewalkZ + 12)
+	createPart(props, "CivCarChassis", Vector3.new(6.2, 1.2, 13), carCF, Color3.fromRGB(40, 70, 130), Enum.Material.SmoothPlastic, true, true)
+	createPart(props, "CivCarCabin", Vector3.new(5.8, 2.2, 7.5), carCF * CFrame.new(0, 1.6, -0.6), Color3.fromRGB(40, 70, 130), Enum.Material.SmoothPlastic, true, true)
+	createPart(props, "CivCarWindshield", Vector3.new(5.4, 1.8, 0.4), carCF * CFrame.new(0, 1.6, -4.4) * CFrame.Angles(math.rad(-25), 0, 0), Color3.fromRGB(160, 220, 250), Enum.Material.Glass, true, false)
+	createPart(props, "CivCarRearWindow", Vector3.new(5.4, 1.8, 0.4), carCF * CFrame.new(0, 1.6, 3.2) * CFrame.Angles(math.rad(25), 0, 0), Color3.fromRGB(160, 220, 250), Enum.Material.Glass, true, false)
+
+	props.Parent = parent
+	return props
 end
 
 -- ============================================================================
@@ -1215,6 +1508,56 @@ function IslandManager.UpdateBuildingVisuals(player: Player, plotIndex: number, 
 		end
 		print(string.format("[IslandManager] %s için %d. Proje %%100 tamamlandı! Yeni arsa açma butonu aktif.", player.Name, plotIndex))
 	end
+
+	-- ========================================================================
+	-- CITIES: SKYLINES SİVİL MAHALLE YAŞAMI VE KENTSEL OBJELER
+	-- ========================================================================
+	local oldProps = plot.Folder:FindFirstChild("UrbanProps")
+	if oldProps then oldProps:Destroy() end
+	local oldResidents = plot.Folder:FindFirstChild("CityResidents")
+	if oldResidents then oldResidents:Destroy() end
+
+	if level >= 4 then
+		-- Kentsel Yaşam Objeleri (Otobüs Durağı, Yangın Musluğu, Çöp Kovaları, Sivil Otomobil)
+		spawnUrbanProps(plot.Folder, plot.Origin)
+
+		-- Sivil Mahalle Sakinleri (Yayalar)
+		local resFolder = Instance.new("Folder")
+		resFolder.Name = "CityResidents"
+		resFolder.Parent = plot.Folder
+
+		local resCount = (level >= 5) and 6 or 4
+		local sidewalkZ = plot.Origin.Z + 36
+		for i = 1, resCount do
+			local name = GameConfig.CITY_RESIDENTS.Names[((i - 1) % #GameConfig.CITY_RESIDENTS.Names) + 1]
+			local role = GameConfig.CITY_RESIDENTS.Roles[((i - 1) % #GameConfig.CITY_RESIDENTS.Roles) + 1]
+			local outfit = GameConfig.CITY_RESIDENTS.Outfits[((i - 1) % #GameConfig.CITY_RESIDENTS.Outfits) + 1]
+			local startX = plot.Origin.X - 20 + (i * 9)
+			local patrolDist = 12 + (i * 2.5)
+			local rCF = CFrame.new(startX, 6.2, sidewalkZ + ((i % 2 == 0) and 2 or -2))
+			spawnCityResident(resFolder, name, role, outfit, rCF, patrolDist)
+		end
+		print(string.format("[IslandManager] %s için %d. Projede canlı şehir yaşamı ve sivil sakinler aktif edildi! (Seviye %d)", player.Name, plotIndex, level))
+	end
+end
+
+function IslandManager.GetCommercialRent(buildingLevel: number): number
+	if buildingLevel < 3 then
+		return 0
+	elseif buildingLevel == 3 then
+		return GameConfig.COMMERCIAL_SHOPS.Restaurant and GameConfig.COMMERCIAL_SHOPS.Restaurant.RentPerSecond or 65
+	elseif buildingLevel == 4 then
+		local bRent = GameConfig.COMMERCIAL_SHOPS.Bakery and GameConfig.COMMERCIAL_SHOPS.Bakery.RentPerSecond or 40
+		local mRent = GameConfig.COMMERCIAL_SHOPS.Market and GameConfig.COMMERCIAL_SHOPS.Market.RentPerSecond or 35
+		return bRent + mRent
+	elseif buildingLevel >= 5 then
+		local totalRent = 0
+		for _, shop in pairs(GameConfig.COMMERCIAL_SHOPS or {}) do
+			totalRent += (shop.RentPerSecond or 40)
+		end
+		return totalRent
+	end
+	return 0
 end
 
 function IslandManager.RemoveAllPlots(player: Player)
