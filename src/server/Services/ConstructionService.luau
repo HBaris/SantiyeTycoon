@@ -13,6 +13,7 @@ local CityManager = require(script.Parent.CityManager)
 
 local ConstructionService = {}
 local activeBoosts = {} -- [Player] = expireTimestamp
+local comboMultipliers = {} -- [Player] = number (2.00 .. 3.49)
 local playerSlots = {}
 local nextSlot = 1
 
@@ -89,8 +90,8 @@ local function calculateTotalProductionRate(player: Player, isTurbo: boolean): (
 		totalCommercialRent += (baseRent * commMult)
 	end
 
-	local turboMultiplier = isTurbo and GameConfig.BOOST_MULTIPLIER or 1.0
-	local finalSpeed = totalSpeed * turboMultiplier * multipliers.ProductionMultiplier * multipliers.SpeedMultiplier
+	local currentTurbo = isTurbo and (comboMultipliers[player] or GameConfig.BOOST_MULTIPLIER) or 1.0
+	local finalSpeed = totalSpeed * currentTurbo * multipliers.ProductionMultiplier * multipliers.SpeedMultiplier
 
 	-- Cities: Skylines Memnuniyet Çarpanı: Tüm pasif gelire uygulanır (%80 memnuniyet = %80 gelir)
 	local happinessMultiplier = CityManager.GetHappinessMultiplier(player)
@@ -98,6 +99,59 @@ local function calculateTotalProductionRate(player: Player, isTurbo: boolean): (
 
 	return finalSpeed, finalCashPerSec
 end
+
+-- Manuel Çekiç Vuruşu ve Hızlı Tıklama Kombo Sistemi (2.00x -> 2.03x -> 2.07x -> ... -> 3.49x)
+local function handleHammerClick(player: Player)
+	local profile = DataService.GetProfile(player)
+	if not profile then return end
+
+	local now = tick()
+	local expireTime = activeBoosts[player] or 0
+	local currentMult = comboMultipliers[player] or GameConfig.COMBO_MIN_MULTIPLIER
+
+	if now > expireTime then
+		-- Yeni turbo başlat: 2.00x'ten başlar
+		currentMult = GameConfig.COMBO_MIN_MULTIPLIER
+	else
+		-- Ardışık hızlı tıklama ile çarpanı 3.49'a kadar kademeli artır
+		local step = 0.03
+		if currentMult == 2.00 then
+			step = 0.03
+		elseif currentMult == 2.03 then
+			step = 0.04
+		else
+			step = (math.random(1, 2) == 1 and GameConfig.COMBO_STEP_MIN or GameConfig.COMBO_STEP_MAX)
+		end
+		currentMult = math.min(GameConfig.COMBO_MAX_MULTIPLIER, math.floor((currentMult + step) * 100 + 0.5) / 100)
+	end
+
+	comboMultipliers[player] = currentMult
+	activeBoosts[player] = now + GameConfig.BOOST_DURATION
+
+	-- Tüm istemcilere ve oyuncuya güncel süreyi ve kombo çarpanını yayınla
+	Network.SyncTurboStatusEvent:FireAllClients(player, true, GameConfig.BOOST_DURATION, currentMult)
+
+	-- Anında Nakit Tıklama Ödülü: Kombo çarpanı ile katlanarak artar!
+	local totalSpeed, _ = calculateTotalProductionRate(player, true)
+	local comboTierBonus = math.floor((currentMult - GameConfig.COMBO_MIN_MULTIPLIER) * 60)
+	local clickReward = math.max(10, math.floor(totalSpeed * 0.25) + comboTierBonus)
+	profile.Cash += clickReward
+
+	local leaderstats = player:FindFirstChild("leaderstats")
+	if leaderstats then
+		local cashVal = (leaderstats:FindFirstChild(GameConfig.CURRENCY_NAME) or leaderstats:FindFirstChild("💰 Kasa ($)")) :: IntValue?
+		if cashVal then
+			cashVal.Value = profile.Cash
+		end
+		local speedVal = leaderstats:FindFirstChild("🏗️ Hız (İ/sn)") :: IntValue?
+		if speedVal then
+			speedVal.Value = totalSpeed
+		end
+	end
+
+	Network.SyncResourcesEvent:FireClient(player, profile.Cash, profile.Crystals, profile.Engineers)
+end
+ConstructionService.HandleHammerClick = handleHammerClick
 
 function ConstructionService.Initialize()
 	local function handlePlayer(player: Player)
@@ -203,33 +257,15 @@ function ConstructionService.Initialize()
 	-- 2. Oyuncu Ayrıldığında (PlayerRemoving)
 	Players.PlayerRemoving:Connect(function(player)
 		activeBoosts[player] = nil
+		comboMultipliers[player] = nil
 		playerSlots[player] = nil
 		IslandManager.RemoveAllPlots(player)
 		DataService.UnloadPlayer(player)
 	end)
 
-	-- 3. Çekiç Vurma Olayı Dinleyicisi (Turbo Modu + Anında Tıklama Kazancı)
+	-- 3. Çekiç Vurma Olayı Dinleyicisi (Turbo Modu + Kademeli Kombo ve Anında Tıklama Kazancı)
 	Network.HammerHitEvent.OnServerEvent:Connect(function(player)
-		local profile = DataService.GetProfile(player)
-		if not profile then return end
-
-		activeBoosts[player] = tick() + GameConfig.BOOST_DURATION
-		Network.SyncTurboStatusEvent:FireAllClients(player, true, GameConfig.BOOST_DURATION)
-
-		-- Anında Hızlandırma/Çekiç Vurma Nakit Ödülü
-		local totalSpeed, _ = calculateTotalProductionRate(player, true)
-		local clickReward = math.max(10, math.floor(totalSpeed * 0.35))
-		profile.Cash += clickReward
-
-		local leaderstats = player:FindFirstChild("leaderstats")
-		if leaderstats then
-			local cashVal = (leaderstats:FindFirstChild(GameConfig.CURRENCY_NAME) or leaderstats:FindFirstChild("💰 Kasa ($)")) :: IntValue?
-			if cashVal then
-				cashVal.Value = profile.Cash
-			end
-		end
-
-		Network.SyncResourcesEvent:FireClient(player, profile.Cash, profile.Crystals, profile.Engineers)
+		handleHammerClick(player)
 	end)
 
 	-- Upgrade ve Garage Servislerini İlklendir
@@ -276,6 +312,10 @@ function ConstructionService.Initialize()
 
 				if profile and leaderstats then
 					local isTurbo = (activeBoosts[player] or 0) > tick()
+					if not isTurbo and comboMultipliers[player] then
+						comboMultipliers[player] = nil
+					end
+
 					local finalSpeed, cashEarned = calculateTotalProductionRate(player, isTurbo)
 
 					-- Kasaya parayı aktar
@@ -289,11 +329,12 @@ function ConstructionService.Initialize()
 
 					-- Şantiye Ofis Tabelalarını Güncelle
 					local allPlots = IslandManager.GetAllPlots(player)
+					local currentMult = comboMultipliers[player] or GameConfig.BOOST_MULTIPLIER
 					for _, plot in pairs(allPlots) do
 						if plot.RateLabel then
 							if isTurbo then
-								plot.RateLabel.Text = string.format("🔥 TURBO İNŞAAT: +%d İP/sn! 🏗️", cashEarned)
-								plot.RateLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+								plot.RateLabel.Text = string.format("🔥 %.2fX TURBO: +%d İP/sn! 🏗️", currentMult, cashEarned)
+								plot.RateLabel.TextColor3 = (currentMult >= GameConfig.COMBO_MAX_MULTIPLIER) and Color3.fromRGB(255, 120, 240) or Color3.fromRGB(0, 255, 255)
 							else
 								plot.RateLabel.Text = string.format("+%d İP/sn 🏗️", cashEarned)
 								plot.RateLabel.TextColor3 = Color3.fromRGB(255, 220, 50)
@@ -353,29 +394,11 @@ function ConstructionService.HookPlotPads(player: Player, plot: any)
 		end)
 	end
 
-	-- 4. Binaya Doğrudan Tıklama: Çekiçle vurup Turbo İnşaatı tetikler ve anında nakit verir
+	-- 4. Binaya Doğrudan Tıklama: Çekiçle vurup Turbo İnşaatı tetikler ve kombo çarpanı ile ödül verir
 	if plot.BuildingClickDetector then
 		plot.BuildingClickDetector.MouseClick:Connect(function(clickPlayer)
 			if clickPlayer == player then
-				local profile = DataService.GetProfile(player)
-				if not profile then return end
-
-				activeBoosts[player] = tick() + GameConfig.BOOST_DURATION
-				Network.SyncTurboStatusEvent:FireAllClients(player, true, GameConfig.BOOST_DURATION)
-
-				local totalSpeed, _ = calculateTotalProductionRate(player, true)
-				local clickReward = math.max(10, math.floor(totalSpeed * 0.35))
-				profile.Cash += clickReward
-
-				local leaderstats = player:FindFirstChild("leaderstats")
-				if leaderstats then
-					local cashVal = (leaderstats:FindFirstChild(GameConfig.CURRENCY_NAME) or leaderstats:FindFirstChild("💰 Kasa ($)")) :: IntValue?
-					if cashVal then
-						cashVal.Value = profile.Cash
-					end
-				end
-
-				Network.SyncResourcesEvent:FireClient(player, profile.Cash, profile.Crystals, profile.Engineers)
+				handleHammerClick(player)
 			end
 		end)
 	end

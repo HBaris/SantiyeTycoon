@@ -270,7 +270,7 @@ function GarageService.DeliverCargo(player: Player, plotIndex: number)
 		end)
 
 		-- Tüm istemcilere görsel kargo turbosunu senkronize et
-		Network.SyncTurboStatusEvent:FireAllClients(player, true, GameConfig.CARGO_BOOST_DURATION)
+		Network.SyncTurboStatusEvent:FireAllClients(player, true, GameConfig.CARGO_BOOST_DURATION, GameConfig.CARGO_BOOST_MULTIPLIER)
 		print(string.format("[GarageService] %s Proje #%d için %d malzeme teslim etti! 45sn Turbo İnşaat başladı, +%d İP prim kazandı.", player.Name, plotIndex, cargoAmount, bonusCash))
 		return true
 	end

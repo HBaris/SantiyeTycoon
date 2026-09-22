@@ -9,8 +9,12 @@ GameConfig.CURRENCY_NAME = "🏗️ Kasa (İP)"
 GameConfig.PROGRESS_TO_CASH_RATIO = 1.0 -- 1 İnşaat İlerlemesi = 1 İP Gelir
 
 -- Manuel Çekiç Vurma Turbo Ayarları
-GameConfig.BOOST_MULTIPLIER = 2.0 -- Çekiçle vurulduğunda inşaat hızı 2 katına çıkar
-GameConfig.BOOST_DURATION = 6.0 -- 6 saniyelik "2x Turbo İnşaat" süresi
+GameConfig.BOOST_MULTIPLIER = 2.0 -- Başlangıç çekiç vuruşu turbo katsayısı
+GameConfig.BOOST_DURATION = 6.0 -- 6 saniyelik Turbo İnşaat süresi
+GameConfig.COMBO_MIN_MULTIPLIER = 2.00 -- İlk tıklama katsayısı
+GameConfig.COMBO_MAX_MULTIPLIER = 3.49 -- Ardışık tıklama ile ulaşılabilecek maksimum katsayı
+GameConfig.COMBO_STEP_MIN = 0.03 -- Tıklama başına minimum artış
+GameConfig.COMBO_STEP_MAX = 0.04 -- Tıklama başına maksimum artış
 
 -- Başlangıç Değerleri (Yeni Şantiye)
 GameConfig.STARTING_CASH = 50

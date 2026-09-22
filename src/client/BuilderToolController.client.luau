@@ -20,6 +20,8 @@ local plotLevels = {} -- [plotIndex] = level
 local isUpgradingAnimating = false
 local hammerBtnRef: TextButton? = nil
 local currentTurboEndTime = 0
+local currentComboMultiplier = 1.0
+local isTurboLoopRunning = false
 
 -- Güvenli Ses Çalma Fonksiyonu (Asla hata vermez)
 local function playSfx(soundPath: string, volume: number?, pitch: number?)
@@ -66,12 +68,12 @@ local function spawnFloatingCashText(button: GuiObject, text: string)
 	if not hud then return end
 
 	local floatLabel = Instance.new("TextLabel")
-	floatLabel.Size = UDim2.new(0, 130, 0, 30)
-	floatLabel.Position = button.Position + UDim2.new(0, 15, 0, -25)
+	floatLabel.Size = UDim2.new(0, 150, 0, 30)
+	floatLabel.Position = button.Position + UDim2.new(0, 10, 0, -25)
 	floatLabel.BackgroundTransparency = 1
 	floatLabel.Font = Enum.Font.FredokaOne
 	floatLabel.Text = text
-	floatLabel.TextColor3 = Color3.fromRGB(255, 225, 45)
+	floatLabel.TextColor3 = (currentComboMultiplier >= 3.49) and Color3.fromRGB(255, 110, 240) or Color3.fromRGB(255, 225, 45)
 	floatLabel.TextStrokeColor3 = Color3.fromRGB(60, 30, 0)
 	floatLabel.TextStrokeTransparency = 0.4
 	floatLabel.TextSize = 18
@@ -89,31 +91,59 @@ local function spawnFloatingCashText(button: GuiObject, text: string)
 	end)
 end
 
--- Ekranın ortasında çıkan "Turbo Aktif!" Bildirimi (Tamamen Siyah Yazı, Parlama Yok)
-local function showTurboNotification(duration: number)
+-- Ekranın ortasında çıkan "Turbo Aktif!" Bildirimi ve Hızlı Tıklama Kombo Sistemi (Tamamen Siyah Yazı, Parlama Yok)
+local function showTurboNotification(duration: number, multiplier: number?)
+	local mult = multiplier or 2.0
+	currentComboMultiplier = mult
+	currentTurboEndTime = math.max(currentTurboEndTime, tick() + duration)
+
 	local hud = playerGui:FindFirstChild("BuilderHUD")
 	if not hud then return end
 
 	local banner = hud:FindFirstChild("TurboBanner") :: TextLabel
 	if not banner then return end
 
-	currentTurboEndTime = math.max(currentTurboEndTime, tick() + duration)
 	banner.Visible = true
-	banner.Text = string.format("🔥 2.5X TURBO İNŞAAT AKTİF! (%.0f sn) 🔥", duration)
-	playSfx("rbxasset://sounds/electronicpingshort.wav", 0.5, 1.3)
+	local isMax = (mult >= 3.49)
+	if isMax then
+		banner.BackgroundColor3 = Color3.fromRGB(255, 130, 230)
+		playSfx("rbxasset://sounds/electronicpingshort.wav", 0.6, 1.5)
+	else
+		banner.BackgroundColor3 = Color3.fromRGB(255, 205, 50)
+		playSfx("rbxasset://sounds/electronicpingshort.wav", 0.45, 1.0 + (mult - 2.0) * 0.3)
+	end
+
+	if isTurboLoopRunning then return end
+	isTurboLoopRunning = true
 
 	task.spawn(function()
 		while tick() < currentTurboEndTime do
-			local timeLeft = currentTurboEndTime - tick()
+			local timeLeft = math.max(0, currentTurboEndTime - tick())
+			local isMaxCombo = (currentComboMultiplier >= 3.49)
+
 			if banner and banner.Visible then
-				banner.Text = string.format("🔥 2.5X TURBO İNŞAAT AKTİF! (%.1f sn) 🔥", math.max(0, timeLeft))
+				if isMaxCombo then
+					banner.Text = string.format("⚡ 3.49X MAKSİMUM KOMBO! (%.1f sn) ⚡", timeLeft)
+				else
+					banner.Text = string.format("🔥 %.2fX KOMBO TURBO! (%.1f sn) 🔥", currentComboMultiplier, timeLeft)
+				end
 			end
+
 			if hammerBtnRef then
-				hammerBtnRef.BackgroundColor3 = Color3.fromRGB(255, 140, 20)
-				hammerBtnRef.Text = string.format("🔥 TURBO (%.1fs)\n[HIZLI VUR! +İP]", math.max(0, timeLeft))
+				if isMaxCombo then
+					hammerBtnRef.BackgroundColor3 = Color3.fromRGB(255, 110, 220)
+					hammerBtnRef.Text = string.format("⚡ 3.49X MAX! (%.1fs)\n[MAX ÖDÜL! +İP]", timeLeft)
+				else
+					hammerBtnRef.BackgroundColor3 = Color3.fromRGB(255, 140, 20)
+					hammerBtnRef.Text = string.format("🔥 %.2fX TURBO (%.1fs)\n[TIKLA: +İP KATLA!]", currentComboMultiplier, timeLeft)
+				end
 			end
 			task.wait(0.1)
 		end
+
+		currentComboMultiplier = 1.0
+		isTurboLoopRunning = false
+
 		if banner then
 			banner.Visible = false
 		end
@@ -242,7 +272,8 @@ local function createBuilderHUD()
 			Size = UDim2.new(0, 160, 0, 52),
 		}):Play()
 
-		spawnFloatingCashText(hammerBtn, "+İP! ⚡")
+		local floatText = (currentComboMultiplier > 1.0) and string.format("+İP! (%.2fx) ⚡", currentComboMultiplier) or "+İP! ⚡"
+		spawnFloatingCashText(hammerBtn, floatText)
 		performHammerStrike()
 	end)
 
@@ -511,8 +542,8 @@ if localPlayer.Character then
 end
 localPlayer.CharacterAdded:Connect(watchCharacter)
 
-Network.SyncTurboStatusEvent.OnClientEvent:Connect(function(player, isTurbo, duration)
+Network.SyncTurboStatusEvent.OnClientEvent:Connect(function(player, isTurbo, duration, multiplier)
 	if player == localPlayer and isTurbo then
-		showTurboNotification(duration)
+		showTurboNotification(duration, multiplier)
 	end
 end)
