@@ -14,7 +14,7 @@ local BuildingBuilder = {}
 local SINGLE_CONFIGS: { [number]: { targetWidth: number, yaw: number } } = {
 	[1] = { targetWidth = 38, yaw = 0 },    -- Ahşap Kütük Kulübe (Öne bakıyor)
 	[2] = { targetWidth = 48, yaw = 180 },  -- Tuğla Malikâne (Ön kapı ve garaj öne bakıyor)
-	[3] = { targetWidth = 52, yaw = 270 },  -- Lüks Villa (Giriş ve merdivenler öne bakıyor)
+	[3] = { targetWidth = 52, yaw = 90 },   -- Lüks Villa (Ana giriş ve pencereler öne bakıyor)
 	[4] = { targetWidth = 50, yaw = 0 },    -- Rezidans Apartman (Ana cephe öne bakıyor)
 	[5] = { targetWidth = 52, yaw = 0 },    -- Prestij Gökdelen
 }
@@ -43,7 +43,7 @@ local MULTI_CONFIGS: { [number]: { count: number, targetWidth: number, yaw: numb
 	[3] = {
 		count = 4,
 		targetWidth = 22,
-		yaw = 270,
+		yaw = 90,
 		offsets = {
 			Vector3.new(-14, 0, -18),
 			Vector3.new(14, 0, -18),

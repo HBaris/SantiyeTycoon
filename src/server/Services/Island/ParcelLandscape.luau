@@ -1,9 +1,5 @@
---!strict
--- ============================================================================
--- ParcelLandscape.luau
--- Parsel İnşaat Aşamalarına (Seviye 1-5) Göre Dinamik Peyzaj ve Ağaç Yönetimi
--- ============================================================================
-
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local AssetNormalizer = require(ReplicatedStorage.Shared.AssetNormalizer)
 local PlotDataTypes = require(script.Parent.PlotDataTypes)
 local createPart = PlotDataTypes.createPart
 local createCylinder = PlotDataTypes.createCylinder
@@ -11,66 +7,151 @@ local createCylinder = PlotDataTypes.createCylinder
 local ParcelLandscape = {}
 
 -- ============================================================================
--- YARDIMCI AĞAÇ VE PEYZAJ BİLEŞENLERİ
+-- YARDIMCI AĞAÇ VE PEYZAJ BİLEŞENLERİ (HAZIR MODELLER & PROSEDÜREL YEDEK)
 -- ============================================================================
 
--- 1. Yabani Dağ Çamı (Seviye 1 - Doğal Kulübe Çevresi)
+local function getTreeTemplate(name: string): Model?
+	local assets = ReplicatedStorage:FindFirstChild("Assets")
+	if not assets then return nil end
+	local trees = assets:FindFirstChild("Trees")
+	if not trees then return nil end
+	local candidate = trees:FindFirstChild(name)
+	if candidate and candidate:IsA("Model") then
+		local inner = candidate:FindFirstChildWhichIsA("Model")
+		return inner or candidate
+	end
+	return nil
+end
+
+-- Hazır 3D Ağaç Modelini Yükleyen, Boyutlandıran ve Zemine Oturtan Ortak Fonksiyon
+local function buildModelTree(templateName: string, parent: Instance, pos: Vector3, targetHeight: number): Model?
+	local template = getTreeTemplate(templateName)
+	if not template then return nil end
+
+	local tree = template:Clone()
+	tree.Name = "Landscape_" .. templateName
+	AssetNormalizer.Sanitize(tree)
+
+	for _, p in ipairs(tree:GetDescendants()) do
+		if p:IsA("BasePart") then
+			p.Anchored = true
+		end
+	end
+
+	-- 1. Gerçek 3D Dönüş İzdüşümlü AABB Hesabı
+	local minX, maxX = math.huge, -math.huge
+	local minY, maxY = math.huge, -math.huge
+	local minZ, maxZ = math.huge, -math.huge
+	for _, p in ipairs(tree:GetDescendants()) do
+		if p:IsA("BasePart") then
+			local pcf = p.CFrame
+			local psz = p.Size
+			local extX = 0.5 * (math.abs(pcf.XVector.X) * psz.X + math.abs(pcf.YVector.X) * psz.Y + math.abs(pcf.ZVector.X) * psz.Z)
+			local extY = 0.5 * (math.abs(pcf.XVector.Y) * psz.X + math.abs(pcf.YVector.Y) * psz.Y + math.abs(pcf.ZVector.Y) * psz.Z)
+			local extZ = 0.5 * (math.abs(pcf.XVector.Z) * psz.X + math.abs(pcf.YVector.Z) * psz.Y + math.abs(pcf.ZVector.Z) * psz.Z)
+
+			minX = math.min(minX, pcf.Position.X - extX)
+			maxX = math.max(maxX, pcf.Position.X + extX)
+			minY = math.min(minY, pcf.Position.Y - extY)
+			maxY = math.max(maxY, pcf.Position.Y + extY)
+			minZ = math.min(minZ, pcf.Position.Z - extZ)
+			maxZ = math.max(maxZ, pcf.Position.Z + extZ)
+		end
+	end
+
+	local aabbCenter = Vector3.new((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2)
+	local rawHeight = maxY - minY
+	tree.WorldPivot = CFrame.new(aabbCenter)
+
+	-- Hedef ağaç yüksekliğine göre ölçeklendir
+	local scale = 1
+	if rawHeight > 0 then
+		scale = targetHeight / rawHeight
+		tree:ScaleTo(scale)
+	end
+
+	local scaledHalfHeight = (rawHeight * scale) / 2
+	tree:PivotTo(CFrame.new(pos.X, pos.Y + scaledHalfHeight, pos.Z))
+
+	-- Mutlak zemin hizalama
+	local actualMinY = math.huge
+	for _, p in ipairs(tree:GetDescendants()) do
+		if p:IsA("BasePart") then
+			local pcf = p.CFrame
+			local psz = p.Size
+			local extY = 0.5 * (math.abs(pcf.XVector.Y) * psz.X + math.abs(pcf.YVector.Y) * psz.Y + math.abs(pcf.ZVector.Y) * psz.Z)
+			actualMinY = math.min(actualMinY, pcf.Position.Y - extY)
+		end
+	end
+
+	local diffY = pos.Y - actualMinY
+	if math.abs(diffY) > 0.001 then
+		tree:PivotTo(tree:GetPivot() + Vector3.new(0, diffY, 0))
+	end
+
+	tree.Parent = parent
+	return tree
+end
+
+-- 1. Yabani Dağ Çamı (Seviye 1)
 local function buildPineTree(parent: Instance, pos: Vector3, scale: number?): Model
+	local targetH = 20 * (scale or 1.0)
+	local mTree = buildModelTree("PineTree", parent, pos, targetH)
+	if mTree then return mTree end
+
 	local s = scale or 1.0
 	local tree = Instance.new("Model")
 	tree.Name = "LandscapePine"
-
 	local trunkH = 8 * s
 	createPart(tree, "Trunk", Vector3.new(1.8 * s, trunkH, 1.8 * s), CFrame.new(pos + Vector3.new(0, trunkH / 2, 0)), Color3.fromRGB(90, 60, 35), Enum.Material.Wood, true, true)
 	createPart(tree, "Leaves1", Vector3.new(10 * s, 5 * s, 10 * s), CFrame.new(pos + Vector3.new(0, trunkH + (2 * s), 0)), Color3.fromRGB(45, 95, 45), Enum.Material.Grass, true, false)
 	createPart(tree, "Leaves2", Vector3.new(7 * s, 4 * s, 7 * s), CFrame.new(pos + Vector3.new(0, trunkH + (5 * s), 0)), Color3.fromRGB(50, 110, 50), Enum.Material.Grass, true, false)
 	createPart(tree, "LeavesTop", Vector3.new(4 * s, 4 * s, 4 * s), CFrame.new(pos + Vector3.new(0, trunkH + (8 * s), 0)), Color3.fromRGB(55, 125, 55), Enum.Material.Grass, true, false)
-
 	tree.Parent = parent
 	return tree
 end
 
--- 2. Konut Bahçe Ağacı (Seviye 2 - Banliyö Meyve/Süs Ağacı)
+-- 2. Konut Bahçe Ağacı (Seviye 2)
 local function buildGardenTree(parent: Instance, pos: Vector3, folColor: Color3?): Model
+	local mTree = buildModelTree("GardenTree", parent, pos, 17)
+	if mTree then return mTree end
+
 	local tree = Instance.new("Model")
 	tree.Name = "LandscapeGardenTree"
-
 	local c = folColor or Color3.fromRGB(60, 140, 55)
 	createPart(tree, "Trunk", Vector3.new(1.5, 7, 1.5), CFrame.new(pos + Vector3.new(0, 3.5, 0)), Color3.fromRGB(105, 75, 45), Enum.Material.Wood, true, true)
 	createPart(tree, "FoliageMain", Vector3.new(7.5, 6, 7.5), CFrame.new(pos + Vector3.new(0, 8.5, 0)), c, Enum.Material.Grass, true, false)
 	createPart(tree, "FoliageTop", Vector3.new(5.5, 3.5, 5.5), CFrame.new(pos + Vector3.new(0, 11.5, 0)), c, Enum.Material.Grass, true, false)
-
 	tree.Parent = parent
 	return tree
 end
 
--- 3. Modern Lüks Selvi Ağacı (Seviye 3 - Villa Giriş Peyzajı)
+-- 3. Modern Lüks Selvi Ağacı (Seviye 3)
 local function buildCypressTree(parent: Instance, pos: Vector3): Model
+	local mTree = buildModelTree("CypressTree", parent, pos, 18)
+	if mTree then return mTree end
+
 	local tree = Instance.new("Model")
 	tree.Name = "LandscapeCypress"
-
 	createPart(tree, "Trunk", Vector3.new(1.2, 4, 1.2), CFrame.new(pos + Vector3.new(0, 2, 0)), Color3.fromRGB(80, 55, 35), Enum.Material.Wood, true, true)
 	createPart(tree, "CypressBase", Vector3.new(3.6, 9, 3.6), CFrame.new(pos + Vector3.new(0, 7.5, 0)), Color3.fromRGB(35, 100, 50), Enum.Material.Grass, true, false)
 	createPart(tree, "CypressTip", Vector3.new(2.4, 5, 2.4), CFrame.new(pos + Vector3.new(0, 13.5, 0)), Color3.fromRGB(40, 115, 60), Enum.Material.Grass, true, false)
-
 	tree.Parent = parent
 	return tree
 end
 
--- 4. Prestij Bulvar Ağacı ve Taş Saksısı (Seviye 4 & 5 - Kentsel Peyzaj)
+-- 4. Prestij Bulvar Ağacı ve Taş Saksısı (Seviye 4 & 5)
 local function buildBoulevardTree(parent: Instance, pos: Vector3): Model
+	local mTree = buildModelTree("BoulevardTree", parent, pos, 18)
+	if mTree then return mTree end
+
 	local tree = Instance.new("Model")
 	tree.Name = "LandscapeBoulevardTree"
-
-	-- Mermer/Bazalt Kare Saksı
 	createPart(tree, "PlanterBox", Vector3.new(4.5, 1.4, 4.5), CFrame.new(pos + Vector3.new(0, 0.7, 0)), Color3.fromRGB(65, 70, 75), Enum.Material.Slate, true, true)
 	createPart(tree, "PlanterSoil", Vector3.new(3.9, 0.3, 3.9), CFrame.new(pos + Vector3.new(0, 1.3, 0)), Color3.fromRGB(85, 55, 35), Enum.Material.Ground, true, true)
-
-	-- Gövde ve Geniş Taç
 	createPart(tree, "Trunk", Vector3.new(1.6, 9, 1.6), CFrame.new(pos + Vector3.new(0, 5.5, 0)), Color3.fromRGB(95, 70, 45), Enum.Material.Wood, true, true)
 	createPart(tree, "Crown1", Vector3.new(8.5, 5.5, 8.5), CFrame.new(pos + Vector3.new(0, 11.5, 0)), Color3.fromRGB(45, 135, 60), Enum.Material.Grass, true, false)
 	createPart(tree, "Crown2", Vector3.new(6.0, 3.5, 6.0), CFrame.new(pos + Vector3.new(0, 14.5, 0)), Color3.fromRGB(50, 145, 65), Enum.Material.Grass, true, false)
-
 	tree.Parent = parent
 	return tree
 end

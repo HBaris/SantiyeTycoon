@@ -4,6 +4,8 @@
 -- Şantiye Ekipmanları, Kule Vinç, Şantiye Konteyner Ofisi ve Prestij Meydanı (Plaza)
 -- ============================================================================
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local AssetNormalizer = require(ReplicatedStorage.Shared.AssetNormalizer)
 local PlotDataTypes = require(script.Parent.PlotDataTypes)
 
 local createPart = PlotDataTypes.createPart
@@ -11,24 +13,108 @@ local createCylinder = PlotDataTypes.createCylinder
 
 local SiteEquipmentBuilder = {}
 
+-- ReplicatedStorage.Assets.Equipment altındaki hazır kule vinç modelini bulur
+local function getTowerCraneTemplate(): Model?
+	local assets = ReplicatedStorage:FindFirstChild("Assets")
+	if not assets then return nil end
+	local eq = assets:FindFirstChild("Equipment")
+	if not eq then return nil end
+	local candidate = eq:FindFirstChild("TowerCrane")
+	if candidate and candidate:IsA("Model") then
+		local inner = candidate:FindFirstChildWhichIsA("Model")
+		return inner or candidate
+	end
+	return nil
+end
+
 -- ============================================================================
 -- 1. KULE VİNÇ OLUŞTURUCU (İnşaat Devam Ederken)
 -- ============================================================================
 function SiteEquipmentBuilder.buildTowerCrane(parent: Instance, craneOrigin: Vector3): (Model, Part)
+	local template = getTowerCraneTemplate()
+	if template then
+		local craneModel = template:Clone()
+		craneModel.Name = "TowerCrane"
+		AssetNormalizer.Sanitize(craneModel)
+
+		for _, desc in ipairs(craneModel:GetDescendants()) do
+			if desc:IsA("BasePart") then
+				desc.Anchored = true
+			end
+		end
+
+		-- Gerçek 3D Dönüş İzdüşümlü AABB Hesabı
+		local minX, maxX = math.huge, -math.huge
+		local minY, maxY = math.huge, -math.huge
+		local minZ, maxZ = math.huge, -math.huge
+		for _, p in ipairs(craneModel:GetDescendants()) do
+			if p:IsA("BasePart") then
+				local pcf = p.CFrame
+				local psz = p.Size
+				local extX = 0.5 * (math.abs(pcf.XVector.X) * psz.X + math.abs(pcf.YVector.X) * psz.Y + math.abs(pcf.ZVector.X) * psz.Z)
+				local extY = 0.5 * (math.abs(pcf.XVector.Y) * psz.X + math.abs(pcf.YVector.Y) * psz.Y + math.abs(pcf.ZVector.Y) * psz.Z)
+				local extZ = 0.5 * (math.abs(pcf.XVector.Z) * psz.X + math.abs(pcf.YVector.Z) * psz.Y + math.abs(pcf.ZVector.Z) * psz.Z)
+
+				minX = math.min(minX, pcf.Position.X - extX)
+				maxX = math.max(maxX, pcf.Position.X + extX)
+				minY = math.min(minY, pcf.Position.Y - extY)
+				maxY = math.max(maxY, pcf.Position.Y + extY)
+				minZ = math.min(minZ, pcf.Position.Z - extZ)
+				maxZ = math.max(maxZ, pcf.Position.Z + extZ)
+			end
+		end
+
+		local aabbCenter = Vector3.new((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2)
+		local rawHeight = maxY - minY
+		craneModel.WorldPivot = CFrame.new(aabbCenter)
+
+		-- Şantiyeye uygun kule vinç yüksekliği: 50 stud
+		local targetHeight = 50
+		local scale = 1
+		if rawHeight > 0 then
+			scale = targetHeight / rawHeight
+			craneModel:ScaleTo(scale)
+		end
+
+		local targetY = craneOrigin.Y + 2.0 + (targetHeight / 2)
+		craneModel:PivotTo(CFrame.new(craneOrigin.X, targetY, craneOrigin.Z))
+
+		-- Zemine sıfırlama (MinY)
+		local actualMinY = math.huge
+		for _, p in ipairs(craneModel:GetDescendants()) do
+			if p:IsA("BasePart") then
+				local pcf = p.CFrame
+				local psz = p.Size
+				local extY = 0.5 * (math.abs(pcf.XVector.Y) * psz.X + math.abs(pcf.YVector.Y) * psz.Y + math.abs(pcf.ZVector.Y) * psz.Z)
+				actualMinY = math.min(actualMinY, pcf.Position.Y - extY)
+			end
+		end
+		local diffY = (craneOrigin.Y + 2.0) - actualMinY
+		if math.abs(diffY) > 0.001 then
+			craneModel:PivotTo(craneModel:GetPivot() + Vector3.new(0, diffY, 0))
+		end
+
+		-- Tepe İkaz Lambası
+		local beacon = createPart(
+			craneModel, "WarningBeacon",
+			Vector3.new(1.2, 1.6, 1.2),
+			CFrame.new(craneOrigin.X, craneOrigin.Y + 2.0 + targetHeight + 1, craneOrigin.Z),
+			Color3.fromRGB(255, 50, 50),
+			Enum.Material.Neon,
+			true, false
+		)
+
+		local primaryPart = craneModel:FindFirstChildWhichIsA("BasePart", true) or beacon
+		craneModel.PrimaryPart = primaryPart
+
+		craneModel.Parent = parent
+		return craneModel, primaryPart
+	end
+
+	-- Yedek (Fallback) Prosedürel Vinç
 	local craneModel = Instance.new("Model")
 	craneModel.Name = "TowerCrane"
 
-	-- Vinç Beton Tabanı
-	createPart(
-		craneModel, "CraneBase",
-		Vector3.new(8, 2, 8),
-		CFrame.new(craneOrigin + Vector3.new(0, 1, 0)),
-		Color3.fromRGB(120, 120, 125),
-		Enum.Material.Concrete,
-		true, true
-	)
-
-	-- Kule Gövdesi (Sarı Çelik Kafes)
 	local mastHeight = 46
 	local mast = createPart(
 		craneModel, "CraneMast",
@@ -40,7 +126,6 @@ function SiteEquipmentBuilder.buildTowerCrane(parent: Instance, craneOrigin: Vec
 	)
 	craneModel.PrimaryPart = mast
 
-	-- Dönen Yatay Vinç Kolu (Jib / Boom)
 	local jibPivotY = craneOrigin.Y + 2 + mastHeight + 1.5
 	local jib = createPart(
 		craneModel, "CraneJib",
@@ -52,43 +137,7 @@ function SiteEquipmentBuilder.buildTowerCrane(parent: Instance, craneOrigin: Vec
 	)
 	jib:SetAttribute("IsCraneJib", true)
 
-	-- Karşı Ağırlık (Arka Denge Bloğu)
-	createPart(
-		craneModel, "CounterWeight",
-		Vector3.new(7, 3.2, 3.2),
-		CFrame.new(craneOrigin.X - 9, jibPivotY, craneOrigin.Z),
-		Color3.fromRGB(60, 60, 65),
-		Enum.Material.Concrete,
-		true, true
-	)
-
-	-- Çelik Halat ve Kanca
-	createPart(
-		craneModel, "SteelCable",
-		Vector3.new(0.3, 18, 0.3),
-		CFrame.new(craneOrigin.X + 17, jibPivotY - 9, craneOrigin.Z),
-		Color3.fromRGB(40, 40, 40),
-		Enum.Material.Metal,
-		true, false
-	)
-	createPart(
-		craneModel, "Hook",
-		Vector3.new(1.6, 1.6, 1.6),
-		CFrame.new(craneOrigin.X + 17, jibPivotY - 18, craneOrigin.Z),
-		Color3.fromRGB(220, 40, 40),
-		Enum.Material.Metal,
-		true, false
-	)
-
-	-- Tepe İkaz Lambası
-	createPart(
-		craneModel, "WarningBeacon",
-		Vector3.new(1, 1.5, 1),
-		CFrame.new(craneOrigin.X, jibPivotY + 3, craneOrigin.Z),
-		Color3.fromRGB(255, 50, 50),
-		Enum.Material.Neon,
-		true, false
-	)
+	createPart(craneModel, "WarningBeacon", Vector3.new(1, 1.5, 1), CFrame.new(craneOrigin.X, jibPivotY + 3, craneOrigin.Z), Color3.fromRGB(255, 50, 50), Enum.Material.Neon, true, false)
 
 	craneModel.Parent = parent
 	return craneModel, jib
