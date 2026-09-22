@@ -224,6 +224,39 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 end
 
 -- ============================================================================
+-- 1b. TAŞIT KAPASİTE VE KARGO TESLİMAT FONKSİYONLARI
+-- ============================================================================
+function GarageService.GetEffectiveCargoCapacity(player: Player, vehicleType: string): number
+	local vData = GameConfig.VEHICLES[vehicleType] or GameConfig.VEHICLES.Scooter
+	local cargoLvl = DataService.GetVehicleUpgrade(player, vehicleType, "Cargo")
+	local bonusMult = 1.0 + (cargoLvl * (GameConfig.VEHICLE_UPGRADES.Cargo.BonusMultiplierPerLevel or 0.35))
+	return math.floor(vData.CargoCapacity * bonusMult)
+end
+
+function GarageService.DeliverCargo(player: Player, plotIndex: number)
+	plotIndex = tonumber(plotIndex) or 1
+	local cargoAmount = playerCargo[player] or 0
+
+	if cargoAmount > 0 then
+		playerCargo[player] = 0
+
+		-- Şantiyede 45 saniyelik Turbo Kargo Hızlandırması Başlat
+		local boostKey = string.format("%s_%d", player.Name, plotIndex)
+		activeCargoBoosts[boostKey] = tick() + GameConfig.CARGO_BOOST_DURATION
+
+		-- Oyuncuya kargo teslim bonusu nakit ver
+		local bonusCash = cargoAmount * 8
+		DataService.AddCash(player, bonusCash)
+
+		-- Tüm istemcilere görsel kargo turbosunu senkronize et
+		Network.SyncTurboStatusEvent:FireAllClients(player, true, GameConfig.CARGO_BOOST_DURATION)
+		print(string.format("[GarageService] %s Proje #%d için %d malzeme teslim etti! 45sn Turbo İnşaat başladı, +%d $ prim kazandı.", player.Name, plotIndex, cargoAmount, bonusCash))
+		return true
+	end
+	return false
+end
+
+-- ============================================================================
 -- 2. GARAJ SERVİSİ İLKLENDİRME
 -- ============================================================================
 function GarageService.Initialize()
@@ -263,13 +296,6 @@ function GarageService.Initialize()
 			GarageService.SpawnVehicle(player, vehicleId)
 		end
 	end)
-
-function GarageService.GetEffectiveCargoCapacity(player: Player, vehicleType: string): number
-	local vData = GameConfig.VEHICLES[vehicleType] or GameConfig.VEHICLES.Scooter
-	local cargoLvl = DataService.GetVehicleUpgrade(player, vehicleType, "Cargo")
-	local bonusMult = 1.0 + (cargoLvl * (GameConfig.VEHICLE_UPGRADES.Cargo.BonusMultiplierPerLevel or 0.35))
-	return math.floor(vData.CargoCapacity * bonusMult)
-end
 
 	-- Kargo Malzemesi Yükleme İsteği (Ana Depodan)
 	Network.LoadCargoEvent.OnServerEvent:Connect(function(player: Player)
@@ -343,24 +369,7 @@ end
 
 	-- Kargo Boşaltma ve Şantiyeye Teslimat (2.5x Turbo Boost Tetikler)
 	Network.DeliverCargoEvent.OnServerEvent:Connect(function(player: Player, plotIndex: number)
-		plotIndex = tonumber(plotIndex) or 1
-		local cargoAmount = playerCargo[player] or 0
-
-		if cargoAmount > 0 then
-			playerCargo[player] = 0
-
-			-- Şantiyede 45 saniyelik Turbo Kargo Hızlandırması Başlat
-			local boostKey = string.format("%s_%d", player.Name, plotIndex)
-			activeCargoBoosts[boostKey] = tick() + GameConfig.CARGO_BOOST_DURATION
-
-			-- Oyuncuya kargo teslim bonusu nakit ver
-			local bonusCash = cargoAmount * 8
-			DataService.AddCash(player, bonusCash)
-
-			-- Tüm istemcilere görsel kargo turbosunu senkronize et
-			Network.SyncTurboStatusEvent:FireAllClients(player, true, GameConfig.CARGO_BOOST_DURATION)
-			print(string.format("[GarageService] %s Proje #%d için %d malzeme teslim etti! 45sn Turbo İnşaat başladı, +%d $ prim kazandı.", player.Name, plotIndex, cargoAmount, bonusCash))
-		end
+		GarageService.DeliverCargo(player, plotIndex)
 	end)
 
 	-- Oyuncu katıldığında varsayılan taşıtını hazırla ve yükseltmelerini senkronize et
