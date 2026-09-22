@@ -119,6 +119,12 @@ def main():
             "name": "ParcelLandscape",
             "class": "ModuleScript"
         },
+        {
+            "path": os.path.join(base_dir, "server", "Services", "Island", "ShowroomPaletteBuilder.luau"),
+            "parent": 'game:GetService("ServerScriptService"):WaitForChild("Server"):WaitForChild("Services"):WaitForChild("Island")',
+            "name": "ShowroomPaletteBuilder",
+            "class": "ModuleScript"
+        },
         # Server Services - Core
         {
             "path": os.path.join(base_dir, "server", "Services", "DataService.luau"),

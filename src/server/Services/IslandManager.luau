@@ -33,6 +33,7 @@ local CommercialBuilder = require(Island.CommercialBuilder)
 local SiteEquipmentBuilder = require(Island.SiteEquipmentBuilder)
 local CityLifeService = require(Island.CityLifeService)
 local ParcelLandscape = require(Island.ParcelLandscape)
+local ShowroomPaletteBuilder = require(Island.ShowroomPaletteBuilder)
 
 type PlotData = PlotDataTypes.PlotData
 local createPart = PlotDataTypes.createPart
@@ -130,171 +131,65 @@ function IslandManager.CreatePlot(
 		spawnLocation.Parent = plotFolder
 	end
 
-	-- 2. Kule Vinç
+	-- 2. Kenar Varlık Sergisi & Showroom Platformu (Asset Staging Palette)
+	-- Tüm Seviye 1-10 Binaları, Dükkanlar ve Ekipmanlar parselin sol kenarına dizilir.
+	ShowroomPaletteBuilder.build(plotFolder, plotOrigin)
+
+	-- 3. Temiz & Boş Parsel: Varsayılan binalar veya işçiler parsel zeminini işgal etmez.
 	local craneOrigin = plotOrigin + Vector3.new(-22, 0, 12)
-	local craneModel, craneJib
-	if buildingLevel < 5 then
-		craneModel, craneJib = SiteEquipmentBuilder.buildTowerCrane(plotFolder, craneOrigin)
-	end
+	local craneModel = nil
+	local craneJib = nil
+	local buildingOrigin = plotOrigin + Vector3.new(0, 0, 0)
+	local buildingModel = nil
 
-	-- 3. Bina Modeli (Genişletilmiş Arka Parsel Alanı)
-	local buildingOrigin = plotOrigin + Vector3.new(4, 0, -10)
-	local buildingModel = BuildingBuilder.buildBuildingModel(plotFolder, buildingOrigin, buildingLevel, projectType)
-
-	-- 4. Çekiç Vurma Hedef Alanı
-	local hammerTarget = createPart(plotFolder, "HammerTarget", Vector3.new(34, 28, 34), CFrame.new(buildingOrigin + Vector3.new(0, 14, 0)), Color3.fromRGB(255, 255, 0), Enum.Material.ForceField, true, false)
+	-- Çekiç Vurma Hedef Alanı (Görünmez, etkisiz)
+	local hammerTarget = createPart(plotFolder, "HammerTarget", Vector3.new(2, 2, 2), CFrame.new(plotOrigin + Vector3.new(0, -10, 0)), Color3.fromRGB(255, 255, 0), Enum.Material.ForceField, true, false)
 	hammerTarget.Transparency = 1
-	hammerTarget:SetAttribute("IsHammerTarget", true)
-	hammerTarget:SetAttribute("OwnerUserId", player.UserId)
-	hammerTarget:SetAttribute("PlotIndex", plotIndex)
-
 	local buildingClickDetector = Instance.new("ClickDetector")
-	buildingClickDetector.MaxActivationDistance = 45
-	buildingClickDetector.CursorIcon = "rbxasset://textures/HammerCursor.png"
+	buildingClickDetector.MaxActivationDistance = 0
 	buildingClickDetector.Parent = hammerTarget
 
-	-- 5. Çalışan İşçi NPC'leri (Sadece İnşaat Devam Ederken - Seviye < 5)
-	if buildingLevel < 5 then
-		CityLifeService.spawnSiteWorkers(plotFolder, plotOrigin)
-	end
-
-	-- 6. Kargo Malzeme Teslimat Pad'i (Sağ Yol Kenarı Yanaşma Cebi)
-	-- 6. Kargo Malzeme Teslimat Pad'i (Sağ Yol Kenarı Yanaşma Cebi) - CanCollide = false (Engelsiz Sürüş)
-	local cargoPad = createPart(plotFolder, "CargoUnloadPad", Vector3.new(16, 0.1, 16), CFrame.new(plotOrigin + Vector3.new(24, 2.05, 28)), Color3.fromRGB(40, 180, 240), Enum.Material.SmoothPlastic, true, false)
+	-- 4. Kargo Malzeme Pad'i (Giriş yolu kenarında, parseli engellemez)
+	local cargoPad = createPart(plotFolder, "CargoUnloadPad", Vector3.new(12, 0.1, 8), CFrame.new(plotOrigin + Vector3.new(24, 2.05, 34)), Color3.fromRGB(40, 180, 240), Enum.Material.SmoothPlastic, true, false)
 	cargoPad:SetAttribute("IsCargoUnloadPad", true)
 	cargoPad:SetAttribute("PlotIndex", plotIndex)
 
 	local cPrompt = Instance.new("ProximityPrompt")
 	cPrompt.ActionText = "Malzemeleri Boşalt"
-	cPrompt.ObjectText = "⚡ 2.5x Turbo Başlat"
+	cPrompt.ObjectText = "⚡ Turbo Başlat"
 	cPrompt.HoldDuration = 0
-	cPrompt.MaxActivationDistance = 24
-	cPrompt.KeyboardKeyCode = Enum.KeyCode.E
-	cPrompt.RequiresLineOfSight = false
+	cPrompt.MaxActivationDistance = 0
+	cPrompt.Enabled = false
 	cPrompt.Parent = cargoPad
 
-	cPrompt.Triggered:Connect(function(triggerPlayer)
-		if triggerPlayer == player then
-			GarageService.DeliverCargo(player, plotIndex)
-		end
-	end)
+	local office = nil
+	local rateLabel = nil
 
-	-- Taşıtla yanaşıldığında otomatik kargo teslimatı
-	local debounceUnload = false
-	cargoPad.Touched:Connect(function(hit)
-		if debounceUnload then return end
-		local hitPlayer = GarageService.GetPlayerFromVehicleOrPart(hit)
-		if hitPlayer == player then
-			local cargoAmount = GarageService.GetCargo(player)
-			if cargoAmount > 0 then
-				debounceUnload = true
-				GarageService.DeliverCargo(player, plotIndex)
-				task.delay(1.5, function()
-					debounceUnload = false
-				end)
-			end
-		end
-	end)
-
-	local cGui = Instance.new("BillboardGui")
-	cGui.Size = UDim2.new(6.5, 0, 2.2, 0)
-	cGui.StudsOffset = Vector3.new(0, 3.2, 0)
-	cGui.MaxDistance = 35
-	cGui.AlwaysOnTop = false
-	cGui.Parent = cargoPad
-
-	local cCard = Instance.new("Frame")
-	cCard.Size = UDim2.new(1, 0, 1, 0)
-	cCard.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	cCard.BackgroundTransparency = 0.05
-	cCard.Parent = cGui
-	local ccCorner = Instance.new("UICorner")
-	ccCorner.CornerRadius = UDim.new(0, 10)
-	ccCorner.Parent = cCard
-
-	local cLabel = Instance.new("TextLabel")
-	cLabel.Size = UDim2.new(0.92, 0, 0.88, 0)
-	cLabel.Position = UDim2.new(0.04, 0, 0.06, 0)
-	cLabel.BackgroundTransparency = 1
-	cLabel.Text = "📦 MALZEME BOŞALTMA\n(Taşıtla Yanaş & E'ye Bas!)"
-	cLabel.TextColor3 = Color3.fromRGB(20, 20, 20)
-	cLabel.Font = Enum.Font.FredokaOne
-	cLabel.TextScaled = true
-	cLabel.Parent = cCard
-
-	-- 7. Şantiye Konteyneri / Ofis & Gelir Billboardu (Seviye 5'te Kurumsal Plakete Dönüşür)
-	local office, rateLabel
-	if buildingLevel < 5 then
-		office, rateLabel = SiteEquipmentBuilder.buildSiteOffice(plotFolder, plotOrigin)
-	else
-		local plaque
-		plaque, rateLabel = SiteEquipmentBuilder.buildCorporatePlaque(plotFolder, plotOrigin, player, plotIndex)
-	end
-
-	-- 8. Seviye Yükseltme Butonu (Upgrade Pad - Binanın Önünde Ferah Açık Alanda)
-	local upgradePad = createPart(plotFolder, "UpgradeBuildingPad", Vector3.new(9, 0.5, 7), CFrame.new(plotOrigin + Vector3.new(2, 2.3, 16)), Color3.fromRGB(255, 175, 40), Enum.Material.SmoothPlastic, true, true)
+	-- 5. Seviye Yükseltme Pad'i (Parsel zeminini temiz tutmak için devre dışı ve yer altında)
+	local upgradePad = createPart(plotFolder, "UpgradeBuildingPad", Vector3.new(2, 0.5, 2), CFrame.new(plotOrigin + Vector3.new(0, -10, 0)), Color3.fromRGB(255, 175, 40), Enum.Material.SmoothPlastic, true, false)
+	upgradePad.Transparency = 1
+	upgradePad.CanCollide = false
 	upgradePad:SetAttribute("PadType", "BuildingUpgrade")
 	upgradePad:SetAttribute("OwnerUserId", player.UserId)
 	upgradePad:SetAttribute("PlotIndex", plotIndex)
 
-	local padTopGui = Instance.new("SurfaceGui")
-	padTopGui.Face = Enum.NormalId.Top
-	padTopGui.Parent = upgradePad
-	local padTopLabel = Instance.new("TextLabel")
-	padTopLabel.Size = UDim2.new(1, 0, 1, 0)
-	padTopLabel.BackgroundTransparency = 1
-	padTopLabel.Text = "🔨 YÜKSELTME ALANI\n(TIKLA veya ÜSTÜNE BAS)"
-	padTopLabel.TextColor3 = Color3.fromRGB(20, 20, 20)
-	padTopLabel.TextScaled = true
-	padTopLabel.Font = Enum.Font.FredokaOne
-	padTopLabel.Parent = padTopGui
-
 	local padClickDetector = Instance.new("ClickDetector")
-	padClickDetector.MaxActivationDistance = 48
+	padClickDetector.MaxActivationDistance = 0
 	padClickDetector.Parent = upgradePad
 
 	local padPrompt = Instance.new("ProximityPrompt")
-	padPrompt.ActionText = "Binayı Yükselt"
-	padPrompt.ObjectText = "İnşaatı İlerlet"
-	padPrompt.HoldDuration = 0
-	padPrompt.MaxActivationDistance = 24
-	padPrompt.KeyboardKeyCode = Enum.KeyCode.E
-	padPrompt.RequiresLineOfSight = false
+	padPrompt.Enabled = false
 	padPrompt.Parent = upgradePad
 
 	local padGui = Instance.new("BillboardGui")
 	padGui.Name = "UpgradeBillboard"
-	padGui.Size = UDim2.new(6.5, 0, 2.2, 0)
-	padGui.StudsOffset = Vector3.new(0, 3.2, 0)
-	padGui.MaxDistance = 35
-	padGui.AlwaysOnTop = false
+	padGui.Enabled = false
 	padGui.Parent = upgradePad
-
-	local padCard = Instance.new("Frame")
-	padCard.Size = UDim2.new(1, 0, 1, 0)
-	padCard.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	padCard.BackgroundTransparency = 0.05
-	padCard.BorderSizePixel = 0
-	padCard.Parent = padGui
-	local padCardCorner = Instance.new("UICorner")
-	padCardCorner.CornerRadius = UDim.new(0, 12)
-	padCardCorner.Parent = padCard
-
-	local padCardStroke = Instance.new("UIStroke")
-	padCardStroke.Color = Color3.fromRGB(235, 130, 20)
-	padCardStroke.Thickness = 3
-	padCardStroke.Parent = padCard
 
 	local padLabel = Instance.new("TextLabel")
 	padLabel.Name = "UpgradeText"
-	padLabel.Size = UDim2.new(0.92, 0, 0.88, 0)
-	padLabel.Position = UDim2.new(0.04, 0, 0.06, 0)
-	padLabel.BackgroundTransparency = 1
-	padLabel.Text = "🔨 İNŞAAT GELİŞTİRME"
-	padLabel.TextColor3 = Color3.fromRGB(20, 20, 20)
-	padLabel.TextScaled = true
-	padLabel.Font = Enum.Font.FredokaOne
-	padLabel.Parent = padCard
+	padLabel.Text = ""
+	padLabel.Parent = padGui
 
 	-- 9. Yeni Şantiye Açma Pad'i (Unlock New Plot Pad - Sağ Aks, Kargodan Bağımsız)
 	local unlockPad = createPart(plotFolder, "UnlockNewPlotPad", Vector3.new(9, 0.5, 7), CFrame.new(plotOrigin + Vector3.new(24, 2.3, 12)), Color3.fromRGB(50, 205, 90), Enum.Material.SmoothPlastic, true, false)
@@ -393,7 +288,9 @@ function IslandManager.CreatePlot(
 		if not playerPlots[player.UserId] then playerPlots[player.UserId] = {} end
 		playerPlots[player.UserId][plotIndex] = plotData
 	end
-	IslandManager.UpdateBuildingVisuals(player, plotIndex, buildingLevel)
+	-- Kullanıcı talebi: Bütün elementler kenarda dursun, parsel boş olsun, kullanıcı tek tek ekleyecek.
+	-- Başlangıçta parsel üzerine dev bina, vinç veya işçiler yerleştirilmez; parsel tamamen boştur.
+	-- IslandManager.UpdateBuildingVisuals(player, plotIndex, buildingLevel)
 
 	-- Cities: Skylines Zon ve Hizmet Binaları Görselleri
 	task.spawn(function()

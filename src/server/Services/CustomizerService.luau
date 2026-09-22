@@ -157,8 +157,8 @@ function CustomizerService.Initialize()
 		end
 	end)
 
-	-- 3. Katalogdan Parsel Üzerine Varlık Yerleştirme / Test İsteği
-	Network.SpawnAssetOnPlotEvent.OnServerEvent:Connect(function(player: Player, plotIndex: number, category: string, assetName: string)
+	-- 3. Katalogdan veya Showroom Rafından Parsel Üzerine Varlık Yerleştirme
+	Network.SpawnAssetOnPlotEvent.OnServerEvent:Connect(function(player: Player, plotIndex: number, category: string, assetName: string, transformData: any?)
 		local plotFolder, origin = getPlayerPlot(player, plotIndex)
 		if not plotFolder or not origin then return end
 
@@ -170,22 +170,32 @@ function CustomizerService.Initialize()
 		local clone = template:Clone()
 		if clone:IsA("Folder") then
 			local inner = clone:FindFirstChildWhichIsA("Model")
-			if inner then
-				clone = inner:Clone()
-			else
-				return
-			end
+			if inner then clone = inner:Clone() else return end
 		end
 
 		if clone:IsA("Model") then
 			clone.Name = string.format("Custom_%s_%d", assetName, tick() % 10000)
 			AssetNormalizer.Normalize(clone, { MaxHorizontalSize = 35, EnforceAnchored = true })
 
-			-- Parsel üzerine yerleştir
-			local targetCF = CFrame.new(origin + Vector3.new(0, 2.0, 0))
+			local targetPos = origin + Vector3.new(0, 2.0, 0)
+			local targetYaw = 0
+			if typeof(transformData) == "table" then
+				local tx = tonumber(transformData.X)
+				local tz = tonumber(transformData.Z)
+				if tx and tz then
+					targetPos = Vector3.new(
+						math.clamp(tx, origin.X - 36, origin.X + 36),
+						origin.Y + 2.0,
+						math.clamp(tz, origin.Z - 36, origin.Z + 36)
+					)
+				end
+				targetYaw = tonumber(transformData.Yaw) or 0
+			end
+
+			local targetCF = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(targetYaw), 0)
 			AssetNormalizer.PlaceOnGround(clone, targetCF)
 			clone.Parent = plotFolder
-			print(string.format("[CustomizerService] %s yeni varlık spawnladı: %s", player.Name, clone.Name))
+			print(string.format("[CustomizerService] %s yeni varlık yerleştirdi: %s", player.Name, clone.Name))
 		end
 	end)
 

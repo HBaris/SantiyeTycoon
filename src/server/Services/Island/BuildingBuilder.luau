@@ -17,6 +17,11 @@ local SINGLE_CONFIGS: { [number]: { targetWidth: number, yaw: number } } = {
 	[3] = { targetWidth = 52, yaw = 90 },   -- Lüks Villa (Ana giriş ve pencereler öne bakıyor)
 	[4] = { targetWidth = 50, yaw = 0 },    -- Rezidans Apartman (Ana cephe öne bakıyor)
 	[5] = { targetWidth = 52, yaw = 0 },    -- Prestij Gökdelen
+	[6] = { targetWidth = 48, yaw = 0 },    -- Modern İş Merkezi / Plaza
+	[7] = { targetWidth = 50, yaw = 0 },    -- Şehir Kompleksi / Güvenlik
+	[8] = { targetWidth = 48, yaw = 0 },    -- Şehir Sağlık & Tıp Merkezi
+	[9] = { targetWidth = 54, yaw = 0 },    -- Çift Kule Finans Merkezi
+	[10] = { targetWidth = 56, yaw = 0 },   -- Metropolis Mega Gökdelen
 }
 
 -- Çoklu bina projesinde seviyelere göre 2 ila 6 binanın yerleşim koordinatları ve boyutları
