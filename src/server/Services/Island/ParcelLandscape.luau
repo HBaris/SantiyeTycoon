@@ -142,18 +142,24 @@ end
 
 -- 4. Prestij Bulvar Ağacı ve Taş Saksısı (Seviye 4 & 5)
 local function buildBoulevardTree(parent: Instance, pos: Vector3): Model
-	local mTree = buildModelTree("BoulevardTree", parent, pos, 18)
-	if mTree then return mTree end
+	local container = Instance.new("Model")
+	container.Name = "Landscape_BoulevardTree"
 
-	local tree = Instance.new("Model")
-	tree.Name = "LandscapeBoulevardTree"
-	createPart(tree, "PlanterBox", Vector3.new(4.5, 1.4, 4.5), CFrame.new(pos + Vector3.new(0, 0.7, 0)), Color3.fromRGB(65, 70, 75), Enum.Material.Slate, true, true)
-	createPart(tree, "PlanterSoil", Vector3.new(3.9, 0.3, 3.9), CFrame.new(pos + Vector3.new(0, 1.3, 0)), Color3.fromRGB(85, 55, 35), Enum.Material.Ground, true, true)
-	createPart(tree, "Trunk", Vector3.new(1.6, 9, 1.6), CFrame.new(pos + Vector3.new(0, 5.5, 0)), Color3.fromRGB(95, 70, 45), Enum.Material.Wood, true, true)
-	createPart(tree, "Crown1", Vector3.new(8.5, 5.5, 8.5), CFrame.new(pos + Vector3.new(0, 11.5, 0)), Color3.fromRGB(45, 135, 60), Enum.Material.Grass, true, false)
-	createPart(tree, "Crown2", Vector3.new(6.0, 3.5, 6.0), CFrame.new(pos + Vector3.new(0, 14.5, 0)), Color3.fromRGB(50, 145, 65), Enum.Material.Grass, true, false)
-	tree.Parent = parent
-	return tree
+	-- Modern Taş Bulvar Saksısı (Zeminde Düzgün ve Şık)
+	createPart(container, "PlanterBox", Vector3.new(4.5, 1.2, 4.5), CFrame.new(pos + Vector3.new(0, 0.6, 0)), Color3.fromRGB(55, 60, 65), Enum.Material.Slate, true, true)
+	createPart(container, "PlanterSoil", Vector3.new(3.9, 0.3, 3.9), CFrame.new(pos + Vector3.new(0, 1.15, 0)), Color3.fromRGB(75, 50, 30), Enum.Material.Ground, true, true)
+
+	local mTree = buildModelTree("BoulevardTree", container, pos + Vector3.new(0, 1.0, 0), 16)
+	if not mTree then
+		-- Fallback: Düzgün geometrik gövde ve taç (asla kaya kulesi veya minyatür asılı ağaç değil)
+		local trunkH = 8
+		createPart(container, "Trunk", Vector3.new(1.6, trunkH, 1.6), CFrame.new(pos + Vector3.new(0, 1.2 + trunkH / 2, 0)), Color3.fromRGB(95, 70, 45), Enum.Material.Wood, true, true)
+		createPart(container, "Crown1", Vector3.new(8.5, 5.5, 8.5), CFrame.new(pos + Vector3.new(0, 1.2 + trunkH + 2.5, 0)), Color3.fromRGB(45, 135, 60), Enum.Material.Grass, true, false)
+		createPart(container, "Crown2", Vector3.new(6.0, 3.5, 6.0), CFrame.new(pos + Vector3.new(0, 1.2 + trunkH + 5.5, 0)), Color3.fromRGB(50, 145, 65), Enum.Material.Grass, true, false)
+	end
+
+	container.Parent = parent
+	return container
 end
 
 -- 5. Çiçeklik / Çalı Bordürü

@@ -15,18 +15,30 @@ export type NormalizationOptions = {
 	DefaultPrimaryPart: boolean?,
 }
 
--- 1. GÜVENLİK TEMİZLİĞİ: Tüm zararlı/gizli Script nesnelerini yok eder
+-- 1. GÜVENLİK VE GÖRSEL TEMİZLİK: Zararlı scriptleri, aşırı ışıkları ve çöp modelleri yok eder
 function AssetNormalizer.Sanitize(root: Instance): { string }
-	local removedScripts: { string } = {}
+	local removed: { string } = {}
 
 	for _, desc in ipairs(root:GetDescendants()) do
 		if desc:IsA("Script") or desc:IsA("LocalScript") or desc:IsA("ModuleScript") then
-			table.insert(removedScripts, string.format("%s (%s) @ %s", desc.Name, desc.ClassName, desc:GetFullName()))
+			table.insert(removed, string.format("%s (%s)", desc.Name, desc.ClassName))
 			desc:Destroy()
+		elseif desc:IsA("Light") or desc:IsA("ParticleEmitter") or desc:IsA("Beam") or desc:IsA("Highlight") then
+			-- Model küçüldüğünde üst üste binip kör edici parlama yapan hazır ışık/efektleri temizle
+			desc:Destroy()
+		elseif desc.Name == "ThreeDTextObject" or desc.Name == "realisticTree" or desc.Name == "Leaves Bush Grass" then
+			-- Hazır modellerdeki havada asılı köklü ağaçlar ve 3D yazı çöplerini temizle
+			desc:Destroy()
+		elseif desc:IsA("BasePart") and desc.Material == Enum.Material.Neon then
+			-- Aşırı parlak neon yüzeyleri parlamayan pürüzsüz plastiğe çevir
+			local c = desc.Color
+			if (c.R + c.G + c.B) / 3 > 0.6 then
+				desc.Material = Enum.Material.SmoothPlastic
+			end
 		end
 	end
 
-	return removedScripts
+	return removed
 end
 
 -- 2. NORMALİZASYON: Anchored durumu, PrimaryPart ve ScaleTo standardizasyonu

@@ -39,8 +39,9 @@ local createPart = PlotDataTypes.createPart
 local PLOT_SPACING_Z = PlotDataTypes.PLOT_SPACING_Z
 
 local IslandManager = {}
--- [Player] = { [plotIndex] = plotData }
-local playerPlots: { [Player]: { [number]: PlotData } } = {}
+-- [Player / UserId] = { [plotIndex] = plotData }
+local playerPlots: { [any]: { [number]: PlotData } } = _G.PlayerPlots or {}
+_G.PlayerPlots = playerPlots
 
 -- ============================================================================
 -- 1. ÇEVRE VE ARAZİ ORKESTRASYONU
@@ -87,7 +88,17 @@ function IslandManager.CreatePlot(
 	-- 1. Şantiye Zemin Platformu (80 x 80 stud) ve Bordürler
 	createPart(plotFolder, "PlotGround", Vector3.new(80, 4, 80), CFrame.new(plotOrigin), Color3.fromRGB(145, 135, 120), Enum.Material.Ground, true, true)
 	createPart(plotFolder, "PlotCurb", Vector3.new(82, 0.8, 82), CFrame.new(plotOrigin + Vector3.new(0, 2.2, 0)), Color3.fromRGB(190, 190, 195), Enum.Material.Concrete, true, true)
-	createPart(plotFolder, "PlotEntranceRoad", Vector3.new(16, 0.4, 32), CFrame.new(plotOrigin + Vector3.new(0, 2.2, 36)), Color3.fromRGB(175, 175, 180), Enum.Material.Cobblestone, true, true)
+	-- Şantiye Düz Giriş Yolu ve Otoyol Bağlantı Rampası (Kasis ve basamak olmadan scooter ile akıcı tırmanış)
+	createPart(plotFolder, "PlotEntranceRoad", Vector3.new(16, 0.4, 18), CFrame.new(plotOrigin + Vector3.new(0, 2.2, 29)), Color3.fromRGB(175, 175, 180), Enum.Material.Cobblestone, true, true)
+	local ramp = Instance.new("WedgePart")
+	ramp.Name = "PlotEntranceRamp"
+	ramp.Size = Vector3.new(16, 2.0, 10)
+	ramp.CFrame = CFrame.new(plotOrigin.X, 5.2, plotOrigin.Z + 43) * CFrame.Angles(0, math.pi, 0)
+	ramp.Color = Color3.fromRGB(175, 175, 180)
+	ramp.Material = Enum.Material.Cobblestone
+	ramp.Anchored = true
+	ramp.CanCollide = true
+	ramp.Parent = plotFolder
 
 	-- Giriş Şirket Tabelası
 	local signPost = createPart(plotFolder, "SignPost", Vector3.new(1, 8, 1), CFrame.new(plotOrigin + Vector3.new(12, 5.5, 32)), Color3.fromRGB(80, 85, 90), Enum.Material.Metal, true, true)
@@ -378,6 +389,10 @@ function IslandManager.CreatePlot(
 	}
 
 	playerPlots[player][plotIndex] = plotData
+	if player and player.UserId then
+		if not playerPlots[player.UserId] then playerPlots[player.UserId] = {} end
+		playerPlots[player.UserId][plotIndex] = plotData
+	end
 	IslandManager.UpdateBuildingVisuals(player, plotIndex, buildingLevel)
 
 	-- Cities: Skylines Zon ve Hizmet Binaları Görselleri
@@ -400,14 +415,15 @@ function IslandManager.CreatePlot(
 end
 
 function IslandManager.GetPlot(player: Player, plotIndex: number): PlotData?
-	if playerPlots[player] then
-		return playerPlots[player][plotIndex]
+	local plots = playerPlots[player] or (player and playerPlots[player.UserId])
+	if plots then
+		return plots[plotIndex]
 	end
 	return nil
 end
 
 function IslandManager.GetAllPlots(player: Player): { [number]: PlotData }
-	return playerPlots[player] or {}
+	return playerPlots[player] or (player and playerPlots[player.UserId]) or {}
 end
 
 -- ============================================================================
@@ -600,7 +616,8 @@ function IslandManager.UpdateBuildingVisuals(player: Player, plotIndex: number, 
 			local outfit = GameConfig.CITY_RESIDENTS.Outfits[((i - 1) % #GameConfig.CITY_RESIDENTS.Outfits) + 1]
 			local startX = plot.Origin.X - 20 + (i * 9)
 			local patrolDist = 12 + (i * 2.5)
-			local rCF = CFrame.new(startX, 6.2, sidewalkZ + ((i % 2 == 0) and 2 or -2))
+			-- Kaldırım üst yüzeyi: plot.Origin.Y + 2.4 (6.4), HRP Y: 6.4 + 3.0 = 9.4 (plot.Origin.Y + 5.4)
+			local rCF = CFrame.new(startX, plot.Origin.Y + 5.4, sidewalkZ + ((i % 2 == 0) and 2 or -2))
 			CityLifeService.spawnCityResident(resFolder, name, role, outfit, rCF, patrolDist)
 		end
 		print(string.format("[IslandManager] %s için %d. Projede Açık Hava Çarşısı, kira tabelası (+%s/sn) ve canlı mahalle yaşamı aktif edildi! (Seviye %d)", player.Name, plotIndex, NumberFormat.FormatCash(totalRent), level))

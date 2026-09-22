@@ -160,13 +160,13 @@ function CommercialBuilder.buildEntranceSign(parent: Instance, cf: CFrame, total
 	local signModel = Instance.new("Model")
 	signModel.Name = "PromenadeEntranceGate"
 
-	local gateW = 20.0
+	local gateW = 18.0
 	for _, px in ipairs({ -gateW / 2 + 0.8, gateW / 2 - 0.8 }) do
-		createPart(signModel, "ArchPillar", Vector3.new(1.6, 9.0, 1.6), cf * CFrame.new(px, 4.5, 0), Color3.fromRGB(48, 52, 58), Enum.Material.Cobblestone, true, true)
-		createPart(signModel, "PillarCap", Vector3.new(2.2, 0.6, 2.2), cf * CFrame.new(px, 9.2, 0), Color3.fromRGB(220, 185, 70), Enum.Material.Metal, true, true)
+		createPart(signModel, "ArchPillar", Vector3.new(1.4, 8.0, 1.4), cf * CFrame.new(px, 4.0, 0), Color3.fromRGB(45, 48, 54), Enum.Material.Slate, true, true)
+		createPart(signModel, "PillarCap", Vector3.new(1.8, 0.5, 1.8), cf * CFrame.new(px, 8.2, 0), Color3.fromRGB(180, 160, 110), Enum.Material.Metal, true, true)
 	end
 
-	local beam = createPart(signModel, "ArchBeam", Vector3.new(gateW, 2.6, 1.4), cf * CFrame.new(0, 8.2, 0), Color3.fromRGB(35, 38, 44), Enum.Material.Metal, true, true)
+	local beam = createPart(signModel, "ArchBeam", Vector3.new(gateW, 2.0, 1.2), cf * CFrame.new(0, 7.5, 0), Color3.fromRGB(30, 32, 38), Enum.Material.Metal, true, true)
 
 	for _, face in ipairs({ Enum.NormalId.Front, Enum.NormalId.Back }) do
 		local sGui = Instance.new("SurfaceGui")
@@ -179,21 +179,21 @@ function CommercialBuilder.buildEntranceSign(parent: Instance, cf: CFrame, total
 		container.Parent = sGui
 
 		local title = Instance.new("TextLabel")
-		title.Size = UDim2.new(1, 0, 0.55, 0)
-		title.Position = UDim2.new(0, 0, 0.05, 0)
+		title.Size = UDim2.new(1, 0, 0.52, 0)
+		title.Position = UDim2.new(0, 0, 0.06, 0)
 		title.BackgroundTransparency = 1
-		title.Text = "🛍️ MARMARA PROMENADE ÇARŞISI"
-		title.TextColor3 = Color3.fromRGB(255, 220, 70)
+		title.Text = "🏛️ TİCARİ MEYDAN & ÇARŞI"
+		title.TextColor3 = Color3.fromRGB(240, 240, 245)
 		title.Font = Enum.Font.FredokaOne
 		title.TextScaled = true
 		title.Parent = container
 
 		local rentLabel = Instance.new("TextLabel")
-		rentLabel.Size = UDim2.new(1, 0, 0.35, 0)
+		rentLabel.Size = UDim2.new(1, 0, 0.36, 0)
 		rentLabel.Position = UDim2.new(0, 0, 0.58, 0)
 		rentLabel.BackgroundTransparency = 1
-		rentLabel.Text = string.format("✨ Toplam Ticari Kira: +%s/sn", NumberFormat.FormatCash(totalRent))
-		rentLabel.TextColor3 = Color3.fromRGB(80, 240, 120)
+		rentLabel.Text = string.format("Ticari Kira Geliri: +%s/sn", NumberFormat.FormatCash(totalRent))
+		rentLabel.TextColor3 = Color3.fromRGB(120, 235, 150)
 		rentLabel.Font = Enum.Font.FredokaOne
 		rentLabel.TextScaled = true
 		rentLabel.Parent = container
@@ -219,13 +219,13 @@ function CommercialBuilder.buildPromenade(
 	local promCenterX = pX - 22
 	local promCenterZ = pZ + 2
 
-	-- Geniş Cadde Zemin Platformu (Bazalt Arnavut Kaldırımı)
+	-- Geniş Cadde Zemin Platformu (Mat Koyu Arduvaz Taş Zemin - Asla Parlamaz)
 	createPart(
 		promenadeModel, "PromenadePavement",
 		Vector3.new(24, 0.4, 64),
 		CFrame.new(promCenterX, pY, promCenterZ),
-		Color3.fromRGB(52, 55, 62),
-		Enum.Material.Cobblestone,
+		Color3.fromRGB(38, 40, 44),
+		Enum.Material.Slate,
 		true, true
 	)
 

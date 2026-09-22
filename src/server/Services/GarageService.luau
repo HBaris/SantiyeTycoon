@@ -187,18 +187,17 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 	stabilizer.Mode = Enum.OrientationAlignmentMode.OneAttachment
 	stabilizer.Attachment0 = driveAtt
 	stabilizer.MaxTorque = 5000000
-	stabilizer.Responsiveness = 40
+	stabilizer.Responsiveness = 35
 	stabilizer.CFrame = spawnCFrame
 	stabilizer.Parent = rootPart
 
 	local mover = Instance.new("LinearVelocity")
 	mover.Name = "VehicleMover"
 	mover.Attachment0 = driveAtt
-	mover.VelocityConstraintMode = Enum.VelocityConstraintMode.Line
-	mover.LineDirection = Vector3.new(0, 0, -1)
+	mover.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
 	mover.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
-	mover.MaxForce = 0
-	mover.LineVelocity = 0
+	mover.MaxAxesForce = Vector3.new(0, 0, 350000)
+	mover.VectorVelocity = Vector3.zero
 	mover.Parent = rootPart
 
 	-- Binme ProximityPrompt'u
@@ -212,7 +211,7 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 	prompt.Parent = rootPart
 
 	-- Oyuncu bindiğinde binme promptunu gizle (E tuşu malzeme yükleme/boşaltma ile çakışmaz)
-	local vSeat = model:FindFirstChild("Seat") :: VehicleSeat?
+	local vSeat = model:FindFirstChildWhichIsA("VehicleSeat", true) or (model:FindFirstChild("Seat") :: any)
 	if vSeat then
 		prompt.Enabled = (vSeat.Occupant == nil)
 		vSeat:GetPropertyChangedSignal("Occupant"):Connect(function()
@@ -223,7 +222,7 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 	prompt.Triggered:Connect(function(promptPlayer)
 		local char = promptPlayer.Character
 		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-		local currentSeat = model:FindFirstChild("Seat") :: VehicleSeat
+		local currentSeat = model:FindFirstChildWhichIsA("VehicleSeat", true) or (model:FindFirstChild("Seat") :: any)
 		if humanoid and currentSeat and not currentSeat.Occupant then
 			pcall(function()
 				rootPart:SetNetworkOwner(promptPlayer)
@@ -486,8 +485,8 @@ function GarageService.EnsureGarageEnvironment()
 
 	local depotX, depotZ = -70, 55
 
-	-- Garaj & Depo Zemin Platformu (Asfalt Park Alanı)
-	createPart(folder, "GarageDepotFloor", Vector3.new(70, 0.6, 50), CFrame.new(depotX, 4.4, depotZ), Color3.fromRGB(55, 55, 60), Enum.Material.Asphalt, true)
+	-- Garaj & Depo Zemin Platformu (Asfalt Park Alanı - Otoyol üst yüzeyiyle tam sıfır kotunda)
+	createPart(folder, "GarageDepotFloor", Vector3.new(70, 0.4, 50), CFrame.new(depotX, 4.2, depotZ), Color3.fromRGB(55, 55, 60), Enum.Material.Asphalt, true)
 
 	-- Ana Lojistik Malzeme Deposu Binası
 	createPart(folder, "DepotBuilding", Vector3.new(34, 14, 24), CFrame.new(depotX - 12, 11, depotZ - 10), Color3.fromRGB(160, 100, 45), Enum.Material.CorrodedMetal, true)
@@ -508,7 +507,7 @@ function GarageService.EnsureGarageEnvironment()
 	sLabel.Parent = signGui
 
 	-- Malzeme Yükleme İstasyonu (Drive-Thru Yükleme Alanı) - CanCollide = false (Engelsiz Sürüş)
-	local loadingPad = createPart(folder, "CargoLoadingPad", Vector3.new(22, 0.1, 20), CFrame.new(depotX + 14, 4.75, depotZ - 8), Color3.fromRGB(255, 185, 25), Enum.Material.SmoothPlastic, true, false)
+	local loadingPad = createPart(folder, "CargoLoadingPad", Vector3.new(22, 0.1, 20), CFrame.new(depotX + 14, 4.45, depotZ - 8), Color3.fromRGB(255, 185, 25), Enum.Material.SmoothPlastic, true, false)
 	loadingPad:SetAttribute("IsCargoLoadingPad", true)
 
 	local loadPrompt = Instance.new("ProximityPrompt")

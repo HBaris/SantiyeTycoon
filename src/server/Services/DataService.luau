@@ -27,8 +27,9 @@ else
 	end
 end
 
--- Aktif oyuncu profilleri
-local profiles = {}
+-- Aktif oyuncu profilleri (Tüm ortamlar ve komut satırı için global tabloda saklanır)
+local profiles = _G.ContractorProfiles or {}
+_G.ContractorProfiles = profiles
 
 local function createDefaultProfile()
 	return {
@@ -96,11 +97,19 @@ function DataService.LoadPlayer(player: Player)
 	end
 
 	profiles[player] = profile
+	if player and player.UserId then
+		profiles[player.UserId] = profile
+	end
 	return profile
 end
 
 function DataService.GetProfile(player: Player)
-	return profiles[player]
+	if not player then return nil end
+	local prof = profiles[player] or (player.UserId and profiles[player.UserId]) or (_G.ContractorProfiles and _G.ContractorProfiles[player.UserId])
+	if not prof then
+		prof = DataService.LoadPlayer(player)
+	end
+	return prof
 end
 
 function DataService.AddCash(player: Player, amount: number)

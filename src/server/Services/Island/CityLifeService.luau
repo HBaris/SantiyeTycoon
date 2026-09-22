@@ -145,15 +145,15 @@ function CityLifeService.spawnSiteWorkers(parent: Instance, plotOrigin: Vector3)
 	end
 
 	-- 1. Usta Ahmet (Çekiç Ustası) - Ön avlu / şantiye çalışma alanı (Bina cephesine bakar)
-	local cfAhmet = resolveCollisionFreeCFrame(parent, CFrame.new(plotOrigin + Vector3.new(-12, 6.2, 26)) * CFrame.Angles(0, math.rad(0), 0))
+	local cfAhmet = resolveCollisionFreeCFrame(parent, CFrame.new(plotOrigin + Vector3.new(-12, 5.0, 26)) * CFrame.Angles(0, math.rad(0), 0))
 	CityLifeService.spawnWorkerNPC(workersFolder, "Usta Ahmet", "Çekiç Ustası", cfAhmet)
 
 	-- 2. Mühendis Burak (Şantiye Şefi) - Şantiye Ofisi yanı (Şantiyeye bakar)
-	local cfBurak = resolveCollisionFreeCFrame(parent, CFrame.new(plotOrigin + Vector3.new(24, 6.2, -18)) * CFrame.Angles(0, math.rad(-110), 0))
+	local cfBurak = resolveCollisionFreeCFrame(parent, CFrame.new(plotOrigin + Vector3.new(24, 5.0, -18)) * CFrame.Angles(0, math.rad(-110), 0))
 	CityLifeService.spawnWorkerNPC(workersFolder, "Mühendis Burak", "Şantiye Şefi (Plan)", cfBurak)
 
 	-- 3. Sevkiyatçı Can (Lojistik & Kargo) - Kargo Boşaltma cebi yanı (Yola bakar)
-	local cfCan = resolveCollisionFreeCFrame(parent, CFrame.new(plotOrigin + Vector3.new(30, 6.2, 26)) * CFrame.Angles(0, math.rad(-90), 0))
+	local cfCan = resolveCollisionFreeCFrame(parent, CFrame.new(plotOrigin + Vector3.new(30, 5.0, 26)) * CFrame.Angles(0, math.rad(-90), 0))
 	CityLifeService.spawnWorkerNPC(workersFolder, "Sevkiyatçı Can", "Lojistik & Kargo", cfCan)
 
 	return workersFolder :: Folder
@@ -369,19 +369,19 @@ function CityLifeService.spawnPromenadeResidents(parent: Instance, plotOrigin: V
 	local walkX = pX - 22
 
 	-- 1. Çarşı Yürüme Caddesinde Z Ekseni Boyunca Devriye Atan Yayalar
-	-- Yaya 1: Kuzeyden güneye vitrinleri gezerek yürür
+	-- Yaya 1: Kuzeyden güneye vitrinleri gezerek yürür (Kaldırım üst yüzeyi: pY + 0.2, HRP Y: pY + 3.2)
 	local outfit1 = GameConfig.CITY_RESIDENTS.Outfits[1]
-	local walkCF1 = CFrame.new(walkX - 1.2, pY + 4.0, pZ - 20)
+	local walkCF1 = CFrame.new(walkX - 1.2, pY + 3.2, pZ - 20)
 	CityLifeService.spawnCityResident(promResidents, "Selin", "Alışverişte", outfit1, walkCF1, 44, "Z")
 
 	-- Yaya 2: Elinde kahvesiyle güneyden kuzeye yürür
 	local outfit2 = GameConfig.CITY_RESIDENTS.Outfits[2]
-	local walkCF2 = CFrame.new(walkX + 1.2, pY + 4.0, pZ + 22)
+	local walkCF2 = CFrame.new(walkX + 1.2, pY + 3.2, pZ + 22)
 	CityLifeService.spawnCityResident(promResidents, "Deniz", "Kahve Sever", outfit2, walkCF2, 38, "Z")
 
-	-- 2. Havuz Başındaki Bankta Dinlenen Sakin
+	-- 2. Havuz Başındaki Bankta Dinlenen Sakin (Bank oturak yüzeyi: pY + 1.2)
 	local outfit3 = GameConfig.CITY_RESIDENTS.Outfits[3]
-	local benchCF = CFrame.new(pX - 14, pY + 0.6, pZ + 3.2) * CFrame.Angles(0, 0, 0)
+	local benchCF = CFrame.new(pX - 14, pY + 1.2, pZ + 3.2) * CFrame.Angles(0, 0, 0)
 	CityLifeService.spawnSeatedResident(promResidents, "Murat", "Havuz Keyfi", outfit3, benchCF, true)
 
 	-- 3. Seviye 5 İse Kafe Terası Müşterileri (Bistro Sandalyelerinde Oturanlar)
@@ -391,11 +391,11 @@ function CityLifeService.spawnPromenadeResidents(parent: Instance, plotOrigin: V
 		local outfit5 = GameConfig.CITY_RESIDENTS.Outfits[5]
 
 		-- 1. Masanın Sandalyesi
-		local chairCF1 = CFrame.new(cafeX - 3.6 - 1.6, pY + 0.6, pZ - 20 - 1.5) * CFrame.Angles(0, math.rad(90), 0)
+		local chairCF1 = CFrame.new(cafeX - 3.6 - 1.6, pY + 1.4, pZ - 20 - 1.5) * CFrame.Angles(0, math.rad(90), 0)
 		CityLifeService.spawnSeatedResident(promResidents, "Ece", "Bistro Sohbeti", outfit4, chairCF1, true)
 
 		-- 2. Masanın Sandalyesi
-		local chairCF2 = CFrame.new(cafeX + 3.6 + 1.6, pY + 0.6, pZ - 20 + 4.2) * CFrame.Angles(0, math.rad(-90), 0)
+		local chairCF2 = CFrame.new(cafeX + 3.6 + 1.6, pY + 1.4, pZ - 20 + 4.2) * CFrame.Angles(0, math.rad(-90), 0)
 		CityLifeService.spawnSeatedResident(promResidents, "Burak", "Kafede Dinleniyor", outfit5, chairCF2, true)
 	end
 

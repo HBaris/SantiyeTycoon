@@ -146,9 +146,9 @@ RunService.Heartbeat:Connect(function(dt)
 				currentYaw = root.Orientation.Y
 			end
 
-			if math.abs(currentForwardSpeed) > 0.4 or throttle ~= 0 then
-				local reverseFactor = (currentForwardSpeed < -0.1) and -1 or 1
-				currentYaw = currentYaw - (steer * turnSpeed * 35 * reverseFactor * dt)
+			if math.abs(currentForwardSpeed) > 0.1 or throttle ~= 0 or steer ~= 0 then
+				local reverseFactor = (currentForwardSpeed < -0.5) and -1 or 1
+				currentYaw = currentYaw - (steer * turnSpeed * 40 * reverseFactor * dt)
 			end
 
 			if stabilizer then
@@ -156,12 +156,8 @@ RunService.Heartbeat:Connect(function(dt)
 			end
 
 			if mover then
-				mover.MaxForce = 350000
-				if mover.VelocityConstraintMode == Enum.VelocityConstraintMode.Line then
-					mover.LineVelocity = currentForwardSpeed
-				else
-					mover.VectorVelocity = Vector3.new(0, 0, -currentForwardSpeed)
-				end
+				mover.MaxAxesForce = Vector3.new(0, 0, 350000)
+				mover.VectorVelocity = Vector3.new(0, 0, -currentForwardSpeed)
 			end
 		end
 	else
@@ -216,18 +212,26 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		local hrp = char and char:FindFirstChild("HumanoidRootPart")
 		if not hrp then return end
 
-		-- 1. Malzeme Yükleme İstasyonu Kontrolü
-		local depotFolder = Workspace:FindFirstChild("CentralGarageDepot")
+		-- 1. Malzeme Yükleme İstasyonu Kontrolü (GarageFacility / IsCargoLoadingPad)
+		local depotFolder = Workspace:FindFirstChild("GarageFacility") or Workspace:FindFirstChild("CentralGarageDepot")
 		local loadPad = depotFolder and depotFolder:FindFirstChild("CargoLoadingPad") :: BasePart?
-		if loadPad and (hrp.Position - loadPad.Position).Magnitude <= 26 then
+		if not loadPad then
+			for _, desc in ipairs(Workspace:GetDescendants()) do
+				if desc:IsA("BasePart") and desc:GetAttribute("IsCargoLoadingPad") then
+					loadPad = desc
+					break
+				end
+			end
+		end
+		if loadPad and (hrp.Position - loadPad.Position).Magnitude <= 32 then
 			Network.LoadCargoEvent:FireServer()
 			return
 		end
 
-		-- 2. Kargo Boşaltma İstasyonu Kontrolü
+		-- 2. Kargo Boşaltma İstasyonu Kontrolü (Şantiyedeki kargo teslim pad'i)
 		for _, desc in ipairs(Workspace:GetDescendants()) do
 			if desc:IsA("BasePart") and desc.Name == "CargoUnloadPad" then
-				if (hrp.Position - desc.Position).Magnitude <= 26 then
+				if (hrp.Position - desc.Position).Magnitude <= 32 then
 					local plotIdx = desc:GetAttribute("PlotIndex") or 1
 					Network.DeliverCargoEvent:FireServer(plotIdx)
 					return
