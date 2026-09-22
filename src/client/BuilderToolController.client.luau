@@ -319,17 +319,33 @@ local function createBuilderHUD()
 
 		if nextData then
 			local pTypeData = ProjectTypeConfig.GetType(currentProjectType)
-			local cost = math.floor(nextData.Cost * (pTypeData.CostMultiplier or 1.0))
+			local baseCost = math.floor(nextData.Cost * (pTypeData.CostMultiplier or 1.0))
+
+			local plotFolder = Workspace:FindFirstChild(string.format("Plot_%s_%d", localPlayer.Name, currentPlotIndex))
+			local deliveredMats = (plotFolder and plotFolder:GetAttribute("DeliveredMaterials")) or 0
+			local discountedCostAttr = plotFolder and plotFolder:GetAttribute("DiscountedCost")
+			local maxDiscount = math.floor(baseCost * 0.35)
+			local matDiscount = math.min(deliveredMats * 10, maxDiscount)
+			local cost = (discountedCostAttr and tonumber(discountedCostAttr)) or math.max(10, baseCost - matDiscount)
+
 			if currentCash >= cost then
 				-- Yükseltmeye Hazır: Canlı Yeşil Kart, Net Siyah Yazı
-				upgradeBtn.Text = string.format("🔨 YÜKSELT: %s (%s)\n[TIKLA & GELİŞTİR!]", nextData.Name, NumberFormat.FormatCash(cost))
+				if matDiscount > 0 then
+					upgradeBtn.Text = string.format("🔨 YÜKSELT: %s (%s) [-%s 📦]\n[TIKLA & GELİŞTİR!]", nextData.Name, NumberFormat.FormatCash(cost), NumberFormat.FormatCash(matDiscount))
+				else
+					upgradeBtn.Text = string.format("🔨 YÜKSELT: %s (%s)\n[TIKLA & GELİŞTİR!]", nextData.Name, NumberFormat.FormatCash(cost))
+				end
 				upgradeBtn.BackgroundColor3 = Color3.fromRGB(72, 235, 120)
 				upgradeBtn.TextColor3 = Color3.fromRGB(20, 20, 20) -- SİYAH YAZI
 				upgStroke.Color = Color3.fromRGB(20, 110, 45)
 			else
 				-- Yetersiz Kasa: Sıcak Krem/Açık Gri Kart, Net Koyu/Siyah Yazı (Göz yormaz)
 				local missing = cost - currentCash
-				upgradeBtn.Text = string.format("⏳ %s (%s)\n[Kasa: %s - %s Eksik]", nextData.Name, NumberFormat.FormatCash(cost), NumberFormat.FormatCash(currentCash), NumberFormat.FormatCash(missing))
+				if matDiscount > 0 then
+					upgradeBtn.Text = string.format("⏳ %s (%s) [-%s 📦]\n[Kasa: %s - %s Eksik]", nextData.Name, NumberFormat.FormatCash(cost), NumberFormat.FormatCash(matDiscount), NumberFormat.FormatCash(currentCash), NumberFormat.FormatCash(missing))
+				else
+					upgradeBtn.Text = string.format("⏳ %s (%s)\n[Kasa: %s - %s Eksik]", nextData.Name, NumberFormat.FormatCash(cost), NumberFormat.FormatCash(currentCash), NumberFormat.FormatCash(missing))
+				end
 				upgradeBtn.BackgroundColor3 = Color3.fromRGB(230, 222, 210)
 				upgradeBtn.TextColor3 = Color3.fromRGB(30, 30, 30) -- SİYAH/KOYU YAZI
 				upgStroke.Color = Color3.fromRGB(150, 140, 130)
@@ -545,5 +561,22 @@ localPlayer.CharacterAdded:Connect(watchCharacter)
 Network.SyncTurboStatusEvent.OnClientEvent:Connect(function(player, isTurbo, duration, multiplier)
 	if player == localPlayer and isTurbo then
 		showTurboNotification(duration, multiplier)
+	end
+end)
+
+Network.DeliverCargoEvent.OnClientEvent:Connect(function()
+	task.wait(0.2)
+	updateButtonDisplay(currentBuildingLevel)
+end)
+
+task.spawn(function()
+	local plotFolder = Workspace:WaitForChild(string.format("Plot_%s_1", localPlayer.Name), 10)
+	if plotFolder then
+		plotFolder:GetAttributeChangedSignal("DeliveredMaterials"):Connect(function()
+			updateButtonDisplay(currentBuildingLevel)
+		end)
+		plotFolder:GetAttributeChangedSignal("DiscountedCost"):Connect(function()
+			updateButtonDisplay(currentBuildingLevel)
+		end)
 	end
 end)

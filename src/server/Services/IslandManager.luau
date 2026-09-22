@@ -288,6 +288,8 @@ function IslandManager.CreatePlot(
 		if not playerPlots[player.UserId] then playerPlots[player.UserId] = {} end
 		playerPlots[player.UserId][plotIndex] = plotData
 	end
+	-- Malzeme ve maliyet özniteliklerini başlangıçta senkronize et
+	IslandManager.UpdateUpgradePadText(player, plotIndex)
 	-- Kullanıcı talebi: Bütün elementler kenarda dursun, parsel boş olsun, kullanıcı tek tek ekleyecek.
 	-- Başlangıçta parsel üzerine dev bina, vinç veya işçiler yerleştirilmez; parsel tamamen boştur.
 	-- IslandManager.UpdateBuildingVisuals(player, plotIndex, buildingLevel)
@@ -313,8 +315,43 @@ end
 
 function IslandManager.GetPlot(player: Player, plotIndex: number): PlotData?
 	local plots = playerPlots[player] or (player and playerPlots[player.UserId])
-	if plots then
+	if plots and plots[plotIndex] then
 		return plots[plotIndex]
+	end
+
+	-- Yedek Çözümleyici: Workspace içerisindeki parsel klasörünü dinamik bağla
+	if player and Workspace then
+		local folderName = string.format("Plot_%s_%d", player.Name, plotIndex)
+		local plotFolder = Workspace:FindFirstChild(folderName) :: Folder?
+		if plotFolder then
+			local upgradePad = plotFolder:FindFirstChild("UpgradeBuildingPad") :: Part?
+			local bbgui = upgradePad and upgradePad:FindFirstChildWhichIsA("BillboardGui", true)
+			local padLabel = bbgui and bbgui:FindFirstChildWhichIsA("TextLabel", true)
+
+			local cargoPad = plotFolder:FindFirstChild("CargoUnloadPad") :: Part?
+			local unlockPad = plotFolder:FindFirstChild("UnlockNewPlotPad") :: Part?
+			local unlockGui = unlockPad and unlockPad:FindFirstChildWhichIsA("BillboardGui", true)
+			local unlockLabel = unlockGui and unlockGui:FindFirstChildWhichIsA("TextLabel", true)
+
+			local ground = plotFolder:FindFirstChild("PlotGround") :: BasePart?
+			local plotOrigin = (ground and ground.Position) or Vector3.new(0, 0, 0)
+
+			local fallbackData: any = {
+				Folder = plotFolder,
+				PlotIndex = plotIndex,
+				UpgradePad = upgradePad,
+				UpgradePadLabel = padLabel,
+				CargoPad = cargoPad,
+				UnlockPad = unlockPad,
+				UnlockPadLabel = unlockLabel,
+				UnlockGui = unlockGui,
+				Origin = plotOrigin,
+				ProjectType = "SingleBuilding",
+			}
+			if not playerPlots[player] then playerPlots[player] = {} end
+			playerPlots[player][plotIndex] = fallbackData
+			return fallbackData
+		end
 	end
 	return nil
 end
@@ -350,6 +387,11 @@ function IslandManager.UpdateUpgradePadText(player: Player, plotIndex: number)
 	local maxDiscount = math.floor(baseCost * 0.35)
 	local matDiscount = math.min(deliveredMats * 10, maxDiscount)
 	local finalCost = math.max(10, baseCost - matDiscount)
+
+	plot.Folder:SetAttribute("DeliveredMaterials", deliveredMats)
+	plot.Folder:SetAttribute("DiscountedCost", finalCost)
+	plot.Folder:SetAttribute("BaseCost", baseCost)
+	plot.Folder:SetAttribute("MaterialDiscount", matDiscount)
 
 	if matDiscount > 0 then
 		plot.UpgradePadLabel.Text = string.format("🔨 %s (Lv. %d)\nMaliyet: %s\n(-%s İndirim 📦)", nextData.Name, nextLevel, NumberFormat.FormatCash(finalCost), NumberFormat.FormatCash(matDiscount))
