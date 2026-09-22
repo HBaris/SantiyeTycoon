@@ -60,7 +60,7 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 		seat.Material = Enum.Material.Metal
 		seat.CanCollide = false -- Gövdenin zemine veya kasislere sürtünmesini önler
 		seat.MaxSpeed = effectiveSpeed
-		seat.Torque = effectiveTorque
+		seat.Torque = 0 -- LinearVelocity tahrikli; dahili motor frenlemesini önler
 		seat.TurnSpeed = 2.5
 		seat.Parent = model
 		rootPart = seat
@@ -69,11 +69,14 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 		local stem = createPart(model, "Stem", Vector3.new(0.4, 3.2, 0.4), seat.CFrame * CFrame.new(0, 1.6, -2.2), Color3.fromRGB(50, 50, 55), Enum.Material.Metal, false)
 		local handleBar = createPart(model, "HandleBar", Vector3.new(2.4, 0.4, 0.4), seat.CFrame * CFrame.new(0, 3.2, -2.2), Color3.fromRGB(30, 30, 30), Enum.Material.Rubber, false)
 
-		-- Genişletilmiş ve Kasis Aşabilen Tekerlekler
-		local wFront = createPart(model, "WheelFront", Vector3.new(0.8, 1.6, 1.6), seat.CFrame * CFrame.new(0, -0.2, -2.2), Color3.fromRGB(30, 30, 30), Enum.Material.Rubber, true)
-		local wBack = createPart(model, "WheelBack", Vector3.new(0.8, 1.6, 1.6), seat.CFrame * CFrame.new(0, -0.2, 2.2), Color3.fromRGB(30, 30, 30), Enum.Material.Rubber, true)
-		wFront.CustomPhysicalProperties = PhysicalProperties.new(Enum.Material.Rubber)
-		wBack.CustomPhysicalProperties = PhysicalProperties.new(Enum.Material.Rubber)
+		-- Silindirik ve Kasis Aşabilen Tekerlekler (Düşük sürtünmeyle akıcı tırmanma ve kayma)
+		local wFront = createPart(model, "WheelFront", Vector3.new(0.8, 1.8, 1.8), seat.CFrame * CFrame.new(0, -0.2, -2.2), Color3.fromRGB(30, 30, 30), Enum.Material.Rubber, true)
+		wFront.Shape = Enum.PartType.Cylinder
+		local wBack = createPart(model, "WheelBack", Vector3.new(0.8, 1.8, 1.8), seat.CFrame * CFrame.new(0, -0.2, 2.2), Color3.fromRGB(30, 30, 30), Enum.Material.Rubber, true)
+		wBack.Shape = Enum.PartType.Cylinder
+		local wheelProps = PhysicalProperties.new(0.5, 0.01, 0.0, 100, 100)
+		wFront.CustomPhysicalProperties = wheelProps
+		wBack.CustomPhysicalProperties = wheelProps
 
 		-- Ön Far
 		local light = createPart(model, "Headlight", Vector3.new(0.5, 0.5, 0.3), seat.CFrame * CFrame.new(0, 2.5, -2.4), Color3.fromRGB(255, 255, 220), Enum.Material.Neon, false)
@@ -100,7 +103,7 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 		seat.Color = vData.Color
 		seat.Material = Enum.Material.SmoothPlastic
 		seat.MaxSpeed = effectiveSpeed
-		seat.Torque = effectiveTorque
+		seat.Torque = 0 -- LinearVelocity tahrikli
 		seat.TurnSpeed = 2.8
 		seat.Parent = model
 		rootPart = seat
@@ -110,7 +113,12 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 		local windshield = createPart(model, "Windshield", Vector3.new(2.0, 1.8, 0.3), seat.CFrame * CFrame.new(0, 1.8, -2.4) * CFrame.Angles(math.rad(-20), 0, 0), Color3.fromRGB(150, 220, 255), Enum.Material.Glass, false)
 
 		local wF = createPart(model, "FrontWheel", Vector3.new(1.0, 2.2, 2.2), seat.CFrame * CFrame.new(0, -0.2, -3.2), Color3.fromRGB(30, 30, 30), Enum.Material.Rubber, true)
+		wF.Shape = Enum.PartType.Cylinder
 		local wR = createPart(model, "RearWheel", Vector3.new(1.4, 2.2, 2.2), seat.CFrame * CFrame.new(0, -0.2, 2.8), Color3.fromRGB(30, 30, 30), Enum.Material.Rubber, true)
+		wR.Shape = Enum.PartType.Cylinder
+		local wheelProps = PhysicalProperties.new(0.5, 0.01, 0.0, 100, 100)
+		wF.CustomPhysicalProperties = wheelProps
+		wR.CustomPhysicalProperties = wheelProps
 
 		local light = createPart(model, "Headlight", Vector3.new(0.8, 0.8, 0.3), seat.CFrame * CFrame.new(0, 1.2, -3.2), Color3.fromRGB(255, 255, 230), Enum.Material.Neon, false)
 		local spot = Instance.new("SpotLight")
@@ -135,7 +143,7 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 		seat.Color = Color3.fromRGB(40, 40, 40)
 		seat.Material = Enum.Material.Fabric
 		seat.MaxSpeed = effectiveSpeed
-		seat.Torque = effectiveTorque
+		seat.Torque = 0 -- LinearVelocity tahrikli
 		seat.TurnSpeed = 2.2
 		seat.Parent = model
 		rootPart = seat
@@ -151,8 +159,11 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 			Vector3.new(-3.4, 0, -4.2), Vector3.new(3.4, 0, -4.2),
 			Vector3.new(-3.4, 0, 4.2), Vector3.new(3.4, 0, 4.2),
 		}
+		local carWheelProps = PhysicalProperties.new(0.5, 0.01, 0.0, 100, 100)
 		for i, wPos in ipairs(wheelPositions) do
 			local w = createPart(model, "Wheel_"..i, Vector3.new(1.4, 2.6, 2.6), spawnCFrame * CFrame.new(wPos.X, 1.3, wPos.Z), Color3.fromRGB(25, 25, 25), Enum.Material.Rubber, true)
+			w.Shape = Enum.PartType.Cylinder
+			w.CustomPhysicalProperties = carWheelProps
 			local weld = Instance.new("WeldConstraint")
 			weld.Part0 = chassis
 			weld.Part1 = w
@@ -186,18 +197,19 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 	stabilizer.Name = "VehicleStabilizer"
 	stabilizer.Mode = Enum.OrientationAlignmentMode.OneAttachment
 	stabilizer.Attachment0 = driveAtt
-	stabilizer.MaxTorque = 5000000
-	stabilizer.Responsiveness = 35
+	stabilizer.MaxTorque = 300000
+	stabilizer.Responsiveness = 30
 	stabilizer.CFrame = spawnCFrame
 	stabilizer.Parent = rootPart
 
 	local mover = Instance.new("LinearVelocity")
 	mover.Name = "VehicleMover"
 	mover.Attachment0 = driveAtt
-	mover.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
-	mover.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
-	mover.MaxAxesForce = Vector3.new(0, 0, 350000)
-	mover.VectorVelocity = Vector3.zero
+	mover.VelocityConstraintMode = Enum.VelocityConstraintMode.Line
+	mover.RelativeTo = Enum.ActuatorRelativeTo.World
+	mover.LineDirection = rootPart.CFrame.LookVector
+	mover.LineVelocity = 0
+	mover.MaxForce = 0
 	mover.Parent = rootPart
 
 	-- Binme ProximityPrompt'u
@@ -210,12 +222,25 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = rootPart
 
-	-- Oyuncu bindiğinde binme promptunu gizle (E tuşu malzeme yükleme/boşaltma ile çakışmaz)
+	-- Oyuncu bindiğinde binme promptunu gizle ve ağ sahipliğini (NetworkOwner) anında ver
 	local vSeat = model:FindFirstChildWhichIsA("VehicleSeat", true) or (model:FindFirstChild("Seat") :: any)
 	if vSeat then
 		prompt.Enabled = (vSeat.Occupant == nil)
 		vSeat:GetPropertyChangedSignal("Occupant"):Connect(function()
 			prompt.Enabled = (vSeat.Occupant == nil)
+			local occ = vSeat.Occupant
+			if occ then
+				local sittingPlayer = Players:GetPlayerFromCharacter(occ.Parent)
+				if sittingPlayer then
+					pcall(function()
+						rootPart:SetNetworkOwner(sittingPlayer)
+					end)
+				end
+			else
+				pcall(function()
+					rootPart:SetNetworkOwnershipAuto()
+				end)
+			end
 		end)
 	end
 
@@ -611,7 +636,7 @@ function GarageService.SpawnVehicle(player: Player, vehicleType: string)
 	end
 
 	local depotX, depotZ = -70, 55
-	local spawnCFrame = CFrame.new(depotX + 16, 5.5, depotZ + 8) * CFrame.Angles(0, math.rad(90), 0)
+	local spawnCFrame = CFrame.new(depotX + 16, 5.5, depotZ + 8) * CFrame.Angles(0, math.rad(-90), 0)
 
 	local vehicleModel = buildVehicleModel(player, vehicleType, spawnCFrame)
 	playerVehicles[player] = vehicleModel

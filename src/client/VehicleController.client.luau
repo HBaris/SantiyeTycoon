@@ -82,13 +82,27 @@ local function bindCharacter(char: Model)
 	local humanoid = char:WaitForChild("Humanoid", 10) :: Humanoid
 	if not humanoid then return end
 
-	humanoid.Seated:Connect(function(isSeated, seatPart)
+	local function onSeated(isSeated, seatPart)
 		if isSeated and seatPart and seatPart:IsA("VehicleSeat") then
 			currentSeat = seatPart
 			local model = seatPart.Parent
 			local root = model and model.PrimaryPart or seatPart
-			currentYaw = root.Orientation.Y
+			local flatLook = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
+			if flatLook.Magnitude > 0.01 then
+				flatLook = flatLook.Unit
+				currentYaw = math.deg(math.atan2(-flatLook.X, -flatLook.Z))
+			else
+				currentYaw = root.Orientation.Y
+			end
 			currentForwardSpeed = 0
+			local mover = root:FindFirstChild("VehicleMover") :: LinearVelocity?
+			if mover then
+				mover.VelocityConstraintMode = Enum.VelocityConstraintMode.Line
+				mover.RelativeTo = Enum.ActuatorRelativeTo.World
+				mover.LineDirection = root.CFrame.LookVector
+				mover.LineVelocity = 0
+				mover.MaxForce = 350000
+			end
 			hudCard.Visible = true
 		else
 			if currentSeat then
@@ -98,7 +112,7 @@ local function bindCharacter(char: Model)
 					local mover = root:FindFirstChild("VehicleMover") :: LinearVelocity
 					if mover then
 						mover.MaxForce = 0
-						mover.VectorVelocity = Vector3.zero
+						mover.LineVelocity = 0
 					end
 				end
 			end
@@ -107,7 +121,14 @@ local function bindCharacter(char: Model)
 			currentYaw = nil
 			hudCard.Visible = false
 		end
-	end)
+	end
+
+	humanoid.Seated:Connect(onSeated)
+
+	-- Başlangıçta zaten oturuyorsa anında bağla
+	if humanoid.SeatPart and humanoid.SeatPart:IsA("VehicleSeat") then
+		onSeated(true, humanoid.SeatPart)
+	end
 end
 
 if localPlayer.Character then
@@ -124,40 +145,104 @@ RunService.Heartbeat:Connect(function(dt)
 			local mover = root:FindFirstChild("VehicleMover") :: LinearVelocity
 			local stabilizer = root:FindFirstChild("VehicleStabilizer") :: AlignOrientation
 
-			local throttle = currentSeat.ThrottleFloat or 0
-			local steer = currentSeat.SteerFloat or 0
+			-- Klavye W/A/S/D veya Yön Tuşları doğrudan okuma desteği (VehicleSeat odak kaybına karşı garanti)
+			local uisThrottle = 0
+			if UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.Up) then
+				uisThrottle = 1
+			elseif UserInputService:IsKeyDown(Enum.KeyCode.S) or UserInputService:IsKeyDown(Enum.KeyCode.Down) then
+				uisThrottle = -1
+			end
+
+			local uisSteer = 0
+			if UserInputService:IsKeyDown(Enum.KeyCode.D) or UserInputService:IsKeyDown(Enum.KeyCode.Right) then
+				uisSteer = 1
+			elseif UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.Left) then
+				uisSteer = -1
+			end
+
+			local testThrottle = currentSeat:GetAttribute("TestThrottle")
+			local testSteer = currentSeat:GetAttribute("TestSteer")
+			local throttle = (currentSeat.ThrottleFloat ~= 0 and currentSeat.ThrottleFloat) or (testThrottle or uisThrottle)
+			local steer = (currentSeat.SteerFloat ~= 0 and currentSeat.SteerFloat) or (testSteer or uisSteer)
 			local maxSpeed = currentSeat.MaxSpeed or 28
 			local torque = currentSeat.Torque or 20
 			local turnSpeed = currentSeat.TurnSpeed or 2.5
-			local accelRate = math.max(35, torque * 2.5)
+			local accelRate = math.max(40, torque * 3.0)
 
 			if throttle ~= 0 then
-				currentForwardSpeed = math.clamp(currentForwardSpeed + (throttle * accelRate * dt), -maxSpeed * 0.45, maxSpeed)
+				currentForwardSpeed = math.clamp(currentForwardSpeed + (throttle * accelRate * dt), -maxSpeed * 0.5, maxSpeed)
 			else
-				-- Yavaşlama ve sürtünme
+				-- Yavaşlama ve sürtünme frenlemesi
 				if math.abs(currentForwardSpeed) > 1 then
-					currentForwardSpeed = currentForwardSpeed - math.sign(currentForwardSpeed) * (accelRate * 1.6 * dt)
+					currentForwardSpeed = currentForwardSpeed - math.sign(currentForwardSpeed) * (accelRate * 1.8 * dt)
 				else
 					currentForwardSpeed = 0
 				end
 			end
 
 			if not currentYaw then
-				currentYaw = root.Orientation.Y
+				local flatLook = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
+				if flatLook.Magnitude > 0.01 then
+					flatLook = flatLook.Unit
+					currentYaw = math.deg(math.atan2(-flatLook.X, -flatLook.Z))
+				else
+					currentYaw = root.Orientation.Y
+				end
+			elseif throttle == 0 and steer == 0 then
+				-- Eğer araç dış bir etkenle veya ışınlanmayla aniden döndürülmüşse yaw'ı senkronize tut
+				local flatLook = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
+				if flatLook.Magnitude > 0.01 then
+					local physicalYaw = math.deg(math.atan2(-flatLook.Unit.X, -flatLook.Unit.Z))
+					local diff = (physicalYaw - currentYaw + 180) % 360 - 180
+					if math.abs(diff) > 40 then
+						currentYaw = physicalYaw
+					end
+				end
 			end
 
 			if math.abs(currentForwardSpeed) > 0.1 or throttle ~= 0 or steer ~= 0 then
 				local reverseFactor = (currentForwardSpeed < -0.5) and -1 or 1
-				currentYaw = currentYaw - (steer * turnSpeed * 40 * reverseFactor * dt)
+				currentYaw = currentYaw - (steer * turnSpeed * 45 * reverseFactor * dt)
 			end
 
+			-- Yüzey Normali ve Eğim Tespiti (Rampa, kasis ve yokuşları akıcı tırmanma)
+			local char = localPlayer.Character
+			local rayParams = RaycastParams.new()
+			local ignoreList = { model }
+			if char then table.insert(ignoreList, char) end
+			rayParams.FilterDescendantsInstances = ignoreList
+			rayParams.FilterType = Enum.RaycastFilterType.Exclude
+
+			local ray = Workspace:Raycast(root.Position + Vector3.new(0, 1.5, 0), Vector3.new(0, -6.5, 0), rayParams)
+			local normal = (ray and ray.Normal) or Vector3.new(0, 1, 0)
+			if normal.Y < 0.5 then
+				normal = Vector3.new(0, 1, 0) -- Dik duvarlara yapışmayı önle
+			end
+
+			local forwardHoriz = (CFrame.Angles(0, math.rad(currentYaw), 0) * Vector3.new(0, 0, -1)).Unit
+			local tangentLook = (forwardHoriz - normal * forwardHoriz:Dot(normal)).Unit
+			local tangentRight = tangentLook:Cross(normal).Unit
+
 			if stabilizer then
-				stabilizer.CFrame = CFrame.Angles(0, math.rad(currentYaw), 0)
+				stabilizer.CFrame = CFrame.fromMatrix(root.Position, tangentRight, normal)
 			end
 
 			if mover then
-				mover.MaxAxesForce = Vector3.new(0, 0, 350000)
-				mover.VectorVelocity = Vector3.new(0, 0, -currentForwardSpeed)
+				mover.VelocityConstraintMode = Enum.VelocityConstraintMode.Line
+				mover.RelativeTo = Enum.ActuatorRelativeTo.World
+				mover.LineDirection = tangentLook
+				mover.LineVelocity = currentForwardSpeed
+				mover.MaxForce = 350000
+
+				-- Yanal kaymayı sönümle (Gelişmiş yol tutuşu - savrulma ve buzda kaymayı önler)
+				local curVel = root.AssemblyLinearVelocity
+				local lateralSpeed = curVel:Dot(tangentRight)
+				if math.abs(lateralSpeed) > 0.4 then
+					local dampFactor = math.clamp(1 - (dt * 10), 0, 1)
+					local forwardComp = curVel:Dot(tangentLook)
+					local normalComp = curVel:Dot(normal)
+					root.AssemblyLinearVelocity = (tangentLook * forwardComp) + (tangentRight * (lateralSpeed * dampFactor)) + (normal * normalComp)
+				end
 			end
 		end
 	else
