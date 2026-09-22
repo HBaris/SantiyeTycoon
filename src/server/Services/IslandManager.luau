@@ -31,6 +31,7 @@ local BuildingBuilder = require(Island.BuildingBuilder)
 local CommercialBuilder = require(Island.CommercialBuilder)
 local SiteEquipmentBuilder = require(Island.SiteEquipmentBuilder)
 local CityLifeService = require(Island.CityLifeService)
+local ParcelLandscape = require(Island.ParcelLandscape)
 
 type PlotData = PlotDataTypes.PlotData
 local createPart = PlotDataTypes.createPart
@@ -140,10 +141,10 @@ function IslandManager.CreatePlot(
 	buildingClickDetector.CursorIcon = "rbxasset://textures/HammerCursor.png"
 	buildingClickDetector.Parent = hammerTarget
 
-	-- 5. Çalışan İşçi NPC'leri (Konteyner ve Ekran Alanından Uzak, Nizami Noktalarda)
-	CityLifeService.spawnWorkerNPC(plotFolder, "Usta Ahmet", "Çekiç Ustası", CFrame.new(plotOrigin + Vector3.new(14, 6.2, 2)) * CFrame.Angles(0, math.rad(-60), 0))
-	CityLifeService.spawnWorkerNPC(plotFolder, "Mühendis Burak", "Şantiye Şefi (Plan)", CFrame.new(plotOrigin + Vector3.new(14, 6.2, -10)) * CFrame.Angles(0, math.rad(-45), 0))
-	CityLifeService.spawnWorkerNPC(plotFolder, "Sevkiyatçı Can", "Lojistik & Kargo", CFrame.new(plotOrigin + Vector3.new(32, 6.2, 28)))
+	-- 5. Çalışan İşçi NPC'leri (Sadece İnşaat Devam Ederken - Seviye < 5)
+	if buildingLevel < 5 then
+		CityLifeService.spawnSiteWorkers(plotFolder, plotOrigin)
+	end
 
 	-- 6. Kargo Malzeme Teslimat Pad'i (Sağ Yol Kenarı Yanaşma Cebi)
 	local cargoPad = createPart(plotFolder, "CargoUnloadPad", Vector3.new(12, 0.5, 12), CFrame.new(plotOrigin + Vector3.new(24, 2.3, 28)), Color3.fromRGB(40, 180, 240), Enum.Material.SmoothPlastic, true, true)
@@ -191,8 +192,14 @@ function IslandManager.CreatePlot(
 	cLabel.TextScaled = true
 	cLabel.Parent = cCard
 
-	-- 7. Şantiye Konteyneri / Ofis & Gelir Billboardu
-	local office, rateLabel = SiteEquipmentBuilder.buildSiteOffice(plotFolder, plotOrigin)
+	-- 7. Şantiye Konteyneri / Ofis & Gelir Billboardu (Seviye 5'te Kurumsal Plakete Dönüşür)
+	local office, rateLabel
+	if buildingLevel < 5 then
+		office, rateLabel = SiteEquipmentBuilder.buildSiteOffice(plotFolder, plotOrigin)
+	else
+		local plaque
+		plaque, rateLabel = SiteEquipmentBuilder.buildCorporatePlaque(plotFolder, plotOrigin, player, plotIndex)
+	end
 
 	-- 8. Seviye Yükseltme Butonu (Upgrade Pad - Binanın Önünde Ferah Açık Alanda)
 	local upgradePad = createPart(plotFolder, "UpgradeBuildingPad", Vector3.new(9, 0.5, 7), CFrame.new(plotOrigin + Vector3.new(2, 2.3, 16)), Color3.fromRGB(255, 175, 40), Enum.Material.SmoothPlastic, true, true)
@@ -414,6 +421,34 @@ function IslandManager.UpdateBuildingVisuals(player: Player, plotIndex: number, 
 			plot.CraneJib = craneJib
 		end
 
+		-- Şantiye Ekipmanları ve İşçiler Aktif (Seviye 1, 2, 3, 4)
+		CityLifeService.spawnSiteWorkers(plot.Folder, plot.Origin)
+
+		local oldPlaque = plot.Folder:FindFirstChild("CorporatePlaque")
+		if oldPlaque then oldPlaque:Destroy() end
+
+		if not plot.Folder:FindFirstChild("SiteOffice") then
+			local newOffice, newRateLabel = SiteEquipmentBuilder.buildSiteOffice(plot.Folder, plot.Origin)
+			plot.RateLabel = newRateLabel
+		end
+
+		-- Kargo teslim pad'i ve çekiç hedefi aktif
+		plot.CargoPad.Transparency = 0
+		plot.CargoPad.CanCollide = true
+		local cpPrompt = plot.CargoPad:FindFirstChildOfClass("ProximityPrompt")
+		if cpPrompt then cpPrompt.Enabled = true end
+		local cpGui = plot.CargoPad:FindFirstChildOfClass("BillboardGui")
+		if cpGui then cpGui.Enabled = true end
+
+		local hammerTarget = plot.Folder:FindFirstChild("HammerTarget")
+		if hammerTarget then
+			local cd = hammerTarget:FindFirstChildOfClass("ClickDetector")
+			if cd then cd.MaxActivationDistance = 45 end
+		end
+
+		-- Aşama Peyzajı ve Ağaçlar (Seviye 1-4)
+		ParcelLandscape.UpdateLandscape(plot.Folder, plot.Origin, level)
+
 		-- Plaza modeli varsa kaldır
 		local oldPlaza = plot.Folder:FindFirstChild("SkyscraperPlaza")
 		if oldPlaza then oldPlaza:Destroy() end
@@ -423,14 +458,47 @@ function IslandManager.UpdateBuildingVisuals(player: Player, plotIndex: number, 
 		plot.UnlockPad.CanCollide = false
 		plot.UnlockGui.Enabled = false
 	else
+		-- ====================================================================
 		-- GÖKDELEN TAMAMLANDI (%100 PROJE)!
-		-- 1. KULE VİNÇ SÖKÜLÜR VE KALDIRILIR! (İnşaat bitti, vinç gider!)
+		-- ŞANTİYE EVRESİ BİTTİ -> TAMAMLANMIŞ METROPOL YAŞAM ALANINA DÖNÜŞÜM
+		-- ====================================================================
+
+		-- 1. KULE VİNÇ SÖKÜLÜR VE KALDIRILIR!
 		if plot.CraneModel then
 			plot.CraneModel:Destroy()
 			plot.CraneModel = nil
 			plot.CraneJib = nil
 			print(string.format("[IslandManager] %s için %d. Proje tamamlandı! Kule vinç söküldü.", player.Name, plotIndex))
 		end
+
+		-- 2. ŞANTİYE İŞÇİLERİ VE MÜHENDİSLER SAHADAN AYRILIR! (İnşaat Bitti!)
+		CityLifeService.clearSiteWorkers(plot.Folder)
+
+		-- 3. ŞANTİYE OFİS KONTEYNERİ KALDIRILIR, YERİNE PRESTİJ KURUMSAL PLAKETİ GELİR!
+		local oldOffice = plot.Folder:FindFirstChild("SiteOffice")
+		if oldOffice then oldOffice:Destroy() end
+
+		if not plot.Folder:FindFirstChild("CorporatePlaque") then
+			local plaqueModel, plaqueRateLabel = SiteEquipmentBuilder.buildCorporatePlaque(plot.Folder, plot.Origin, player, plotIndex)
+			plot.RateLabel = plaqueRateLabel
+		end
+
+		-- 4. GEÇİCİ ŞANTİYE PADLERİ DEVRE DIŞI BIRAKILIR (Tamamlanmış Mülk)
+		plot.CargoPad.Transparency = 1
+		plot.CargoPad.CanCollide = false
+		local cpPrompt = plot.CargoPad:FindFirstChildOfClass("ProximityPrompt")
+		if cpPrompt then cpPrompt.Enabled = false end
+		local cpGui = plot.CargoPad:FindFirstChildOfClass("BillboardGui")
+		if cpGui then cpGui.Enabled = false end
+
+		local hammerTarget = plot.Folder:FindFirstChild("HammerTarget")
+		if hammerTarget then
+			local cd = hammerTarget:FindFirstChildOfClass("ClickDetector")
+			if cd then cd.MaxActivationDistance = 0 end
+		end
+
+		-- 5. SEVİYE 5 METROPOL GÖKDELEN PRESTİJ PEYZAJI VE BULVAR AĞAÇLARI
+		ParcelLandscape.UpdateLandscape(plot.Folder, plot.Origin, level)
 
 		plot.UpgradePadLabel.Text = "✨ PROJE %100 TAMAMLANDI! ✨\n(Gökdelen Portföyde)"
 		plot.UpgradePadLabel.TextColor3 = Color3.fromRGB(20, 20, 20)

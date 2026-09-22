@@ -148,4 +148,103 @@ function SiteEquipmentBuilder.buildSiteOffice(parent: Instance, plotOrigin: Vect
 	return office, rateLabel
 end
 
+-- ============================================================================
+-- 3. PROJE %100 TAMAMLANDIĞINDA ŞANTİYE OFİSİNİN YERİNE GELEN PRESTİJ PLAKETİ
+-- ============================================================================
+function SiteEquipmentBuilder.buildCorporatePlaque(
+	parent: Instance,
+	plotOrigin: Vector3,
+	player: Player,
+	plotIndex: number
+): (Model, TextLabel)
+	local plaqueModel = Instance.new("Model")
+	plaqueModel.Name = "CorporatePlaque"
+
+	local pCenter = plotOrigin + Vector3.new(25, 2.2, -18)
+
+	-- Mermer Kaide (Taban)
+	createPart(plaqueModel, "BasePedestal", Vector3.new(8, 0.8, 4), CFrame.new(pCenter + Vector3.new(0, 0.4, 0)), Color3.fromRGB(240, 240, 245), Enum.Material.Marble, true, true)
+
+	-- Parlak Granit/Cam Şirket Plaketi
+	local mainPillar = createPart(plaqueModel, "PlaquePillar", Vector3.new(6.5, 5.5, 1.2), CFrame.new(pCenter + Vector3.new(0, 3.5, 0)), Color3.fromRGB(35, 40, 45), Enum.Material.Slate, true, true)
+	plaqueModel.PrimaryPart = mainPillar
+
+	-- Ön Cam Panel
+	local glassFace = createPart(plaqueModel, "GlassFace", Vector3.new(6.0, 4.8, 0.3), CFrame.new(pCenter + Vector3.new(0, 3.5, 0.7)), Color3.fromRGB(220, 240, 255), Enum.Material.Glass, true, true)
+
+	local sGui = Instance.new("SurfaceGui")
+	sGui.Face = Enum.NormalId.Front
+	sGui.Parent = glassFace
+
+	local plaqueCard = Instance.new("Frame")
+	plaqueCard.Size = UDim2.new(1, 0, 1, 0)
+	plaqueCard.BackgroundColor3 = Color3.fromRGB(20, 30, 45)
+	plaqueCard.BackgroundTransparency = 0.2
+	plaqueCard.BorderSizePixel = 0
+	plaqueCard.Parent = sGui
+
+	local titleLabel = Instance.new("TextLabel")
+	titleLabel.Size = UDim2.new(0.9, 0, 0.45, 0)
+	titleLabel.Position = UDim2.new(0.05, 0, 0.08, 0)
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.Text = string.format("🏛️ %s PLAZA\n[Portföy Proje #%d]", player.DisplayName, plotIndex)
+	titleLabel.TextColor3 = Color3.fromRGB(245, 215, 80)
+	titleLabel.Font = Enum.Font.FredokaOne
+	titleLabel.TextScaled = true
+	titleLabel.Parent = plaqueCard
+
+	local subLabel = Instance.new("TextLabel")
+	subLabel.Size = UDim2.new(0.9, 0, 0.35, 0)
+	subLabel.Position = UDim2.new(0.05, 0, 0.55, 0)
+	subLabel.BackgroundTransparency = 1
+	subLabel.Text = "✨ PROJE TAMAMLANDI ✨\n(Aktif Şehir Yaşam Alanı)"
+	subLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	subLabel.Font = Enum.Font.FredokaOne
+	subLabel.TextScaled = true
+	subLabel.Parent = plaqueCard
+
+	-- Üst Gelir Billboardu (Ofisteki kartın şık versiyonu)
+	local rateGui = Instance.new("BillboardGui")
+	rateGui.Name = "RateBillboard"
+	rateGui.Size = UDim2.new(7.5, 0, 2.2, 0)
+	rateGui.StudsOffset = Vector3.new(0, 4.2, 0)
+	rateGui.AlwaysOnTop = false
+	rateGui.Parent = mainPillar
+
+	local rateCard = Instance.new("Frame")
+	rateCard.Name = "RateCard"
+	rateCard.Size = UDim2.new(1, 0, 1, 0)
+	rateCard.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	rateCard.BackgroundTransparency = 0.05
+	rateCard.BorderSizePixel = 0
+	rateCard.Parent = rateGui
+
+	local rCorner = Instance.new("UICorner")
+	rCorner.CornerRadius = UDim.new(0, 10)
+	rCorner.Parent = rateCard
+
+	local rStroke = Instance.new("UIStroke")
+	rStroke.Color = Color3.fromRGB(40, 180, 80)
+	rStroke.Thickness = 2.5
+	rStroke.Parent = rateCard
+
+	local rateLabel = Instance.new("TextLabel")
+	rateLabel.Name = "RateText"
+	rateLabel.Size = UDim2.new(0.92, 0, 0.88, 0)
+	rateLabel.Position = UDim2.new(0.04, 0, 0.06, 0)
+	rateLabel.BackgroundTransparency = 1
+	rateLabel.Text = "+250 İP/sn (Kira) 🏙️"
+	rateLabel.TextColor3 = Color3.fromRGB(20, 20, 20)
+	rateLabel.TextScaled = true
+	rateLabel.Font = Enum.Font.FredokaOne
+	rateLabel.Parent = rateCard
+
+	-- Yanına Dinlenme Bankı
+	createPart(plaqueModel, "PlazaBench", Vector3.new(7, 1.2, 2.2), CFrame.new(pCenter + Vector3.new(0, 0.6, 5.5)), Color3.fromRGB(120, 80, 45), Enum.Material.WoodPlanks, true, true)
+
+	plaqueModel.Parent = parent
+	return plaqueModel, rateLabel
+end
+
 return SiteEquipmentBuilder
+

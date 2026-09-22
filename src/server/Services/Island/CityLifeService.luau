@@ -111,6 +111,39 @@ function CityLifeService.spawnWorkerNPC(parent: Instance, name: string, role: st
 	return npc
 end
 
+function CityLifeService.spawnSiteWorkers(parent: Instance, plotOrigin: Vector3): Folder
+	local workersFolder = parent:FindFirstChild("SiteWorkers")
+	if not workersFolder then
+		workersFolder = Instance.new("Folder")
+		workersFolder.Name = "SiteWorkers"
+		workersFolder.Parent = parent
+	end
+
+	if not workersFolder:FindFirstChild("Worker_Usta Ahmet") then
+		CityLifeService.spawnWorkerNPC(workersFolder, "Usta Ahmet", "Çekiç Ustası", CFrame.new(plotOrigin + Vector3.new(14, 6.2, 2)) * CFrame.Angles(0, math.rad(-60), 0))
+	end
+	if not workersFolder:FindFirstChild("Worker_Mühendis Burak") then
+		CityLifeService.spawnWorkerNPC(workersFolder, "Mühendis Burak", "Şantiye Şefi (Plan)", CFrame.new(plotOrigin + Vector3.new(14, 6.2, -10)) * CFrame.Angles(0, math.rad(-45), 0))
+	end
+	if not workersFolder:FindFirstChild("Worker_Sevkiyatçı Can") then
+		CityLifeService.spawnWorkerNPC(workersFolder, "Sevkiyatçı Can", "Lojistik & Kargo", CFrame.new(plotOrigin + Vector3.new(32, 6.2, 28)))
+	end
+
+	return workersFolder :: Folder
+end
+
+function CityLifeService.clearSiteWorkers(parent: Instance)
+	local workersFolder = parent:FindFirstChild("SiteWorkers")
+	if workersFolder then
+		workersFolder:Destroy()
+	end
+	for _, child in ipairs(parent:GetChildren()) do
+		if child.Name:match("^Worker_") then
+			child:Destroy()
+		end
+	end
+end
+
 -- ============================================================================
 -- 2. CITIES: SKYLINES SİVİL MAHALLE SAKİNLERİ (Civilian Pedestrians)
 -- ============================================================================

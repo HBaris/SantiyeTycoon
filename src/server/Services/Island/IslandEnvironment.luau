@@ -134,11 +134,12 @@ function IslandEnvironment.EnsureEnvironment(): Folder
 		pl.Range = 30
 		pl.Parent = lampBulb
 
-		-- Yol Kenarı Çam Ağacı
+		-- Otoyol Güney Kıyı Çam Ağacı (Parsellerin Dışında, Güney Kumsalı Sınırında)
+		local treeZ = roadCenterZ + 18
 		local trunk = createPart(
 			envFolder, "PineTrunk",
 			Vector3.new(2.5, 10, 2.5),
-			CFrame.new(x + 35, 9, roadCenterZ - 26),
+			CFrame.new(x + 35, 9, treeZ),
 			Color3.fromRGB(90, 60, 35),
 			Enum.Material.Wood,
 			true, true
@@ -146,7 +147,7 @@ function IslandEnvironment.EnsureEnvironment(): Folder
 		createPart(
 			envFolder, "PineLeaves1",
 			Vector3.new(14, 7, 14),
-			CFrame.new(x + 35, 16, roadCenterZ - 26),
+			CFrame.new(x + 35, 16, treeZ),
 			Color3.fromRGB(45, 95, 45),
 			Enum.Material.Grass,
 			true, false
@@ -154,7 +155,7 @@ function IslandEnvironment.EnsureEnvironment(): Folder
 		createPart(
 			envFolder, "PineLeaves2",
 			Vector3.new(10, 6, 10),
-			CFrame.new(x + 35, 21, roadCenterZ - 26),
+			CFrame.new(x + 35, 21, treeZ),
 			Color3.fromRGB(50, 110, 50),
 			Enum.Material.Grass,
 			true, false
@@ -162,7 +163,7 @@ function IslandEnvironment.EnsureEnvironment(): Folder
 		createPart(
 			envFolder, "PineLeavesTop",
 			Vector3.new(6, 6, 6),
-			CFrame.new(x + 35, 25, roadCenterZ - 26),
+			CFrame.new(x + 35, 25, treeZ),
 			Color3.fromRGB(55, 125, 55),
 			Enum.Material.Grass,
 			true, false

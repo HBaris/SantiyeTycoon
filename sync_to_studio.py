@@ -113,6 +113,12 @@ def main():
             "name": "CityLifeService",
             "class": "ModuleScript"
         },
+        {
+            "path": os.path.join(base_dir, "server", "Services", "Island", "ParcelLandscape.luau"),
+            "parent": 'game:GetService("ServerScriptService"):WaitForChild("Server"):WaitForChild("Services"):WaitForChild("Island")',
+            "name": "ParcelLandscape",
+            "class": "ModuleScript"
+        },
         # Server Services - Core
         {
             "path": os.path.join(base_dir, "server", "Services", "DataService.luau"),
