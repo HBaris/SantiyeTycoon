@@ -224,6 +224,12 @@ def main():
             "class": "LocalScript"
         },
         {
+            "path": os.path.join(base_dir, "client", "CustomizerCameraController.luau"),
+            "parent": 'game:GetService("StarterPlayer"):WaitForChild("StarterPlayerScripts"):WaitForChild("Client")',
+            "name": "CustomizerCameraController",
+            "class": "ModuleScript"
+        },
+        {
             "path": os.path.join(base_dir, "client", "DevCustomizerUI.client.luau"),
             "parent": 'game:GetService("StarterPlayer"):WaitForChild("StarterPlayerScripts"):WaitForChild("Client")',
             "name": "DevCustomizerUI",

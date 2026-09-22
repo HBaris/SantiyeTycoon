@@ -10,9 +10,13 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Network = require(ReplicatedStorage.Shared.Network)
+local Camera = Workspace.CurrentCamera or Workspace:WaitForChild("Camera") :: Camera
+local CustomizerCameraController = require(script.Parent:WaitForChild("CustomizerCameraController"))
+
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
 
@@ -20,12 +24,28 @@ local currentPlotIndex = 1
 local selectedModel: Model? = nil
 local selectionHighlight: Highlight? = nil
 
+-- Sürükle & Bırak (Drag & Drop) Durumu
+local isDragging = false
+local draggedModel: Model? = nil
+local dragInitialCF: CFrame? = nil
+local dragYaw = 0
+
 -- UI Ekranı Oluştur
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DevCustomizerHUD"
 screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
+
+local function corner(p: Instance, r: number)
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, r); c.Parent = p; return c
+end
+
+local function stroke(p: Instance, col: Color3, th: number?)
+	local s = Instance.new("UIStroke")
+	s.Color, s.Thickness, s.Parent = col, th or 1.5, p; return s
+end
 
 -- 1. Sol Menü Açma/Kapama Butonu
 local toggleBtn = Instance.new("TextButton")
@@ -39,15 +59,75 @@ toggleBtn.Font = Enum.Font.FredokaOne
 toggleBtn.TextSize = 13
 toggleBtn.AutoButtonColor = true
 toggleBtn.Parent = screenGui
+corner(toggleBtn, 10)
+stroke(toggleBtn, Color3.fromRGB(245, 180, 30), 2)
 
-local tCorner = Instance.new("UICorner")
-tCorner.CornerRadius = UDim.new(0, 10)
-tCorner.Parent = toggleBtn
+-- 1b. Üst Kuş Bakışı Kamera Kontrol Barı (360° Orbit Kontrolleri)
+local cameraBar = Instance.new("Frame")
+cameraBar.Name = "CameraControlBar"
+cameraBar.Size = UDim2.new(0, 400, 0, 42)
+cameraBar.Position = UDim2.new(0.5, -200, 0, 72)
+cameraBar.BackgroundColor3 = Color3.fromRGB(22, 26, 34)
+cameraBar.BackgroundTransparency = 0.08
+cameraBar.BorderSizePixel = 0
+cameraBar.ZIndex = 15
+cameraBar.Visible = false
+cameraBar.Parent = screenGui
+corner(cameraBar, 10)
+stroke(cameraBar, Color3.fromRGB(65, 75, 95))
 
-local tStroke = Instance.new("UIStroke")
-tStroke.Color = Color3.fromRGB(245, 180, 30)
-tStroke.Thickness = 2
-tStroke.Parent = toggleBtn
+local cbLayout = Instance.new("UIListLayout")
+cbLayout.FillDirection = Enum.FillDirection.Horizontal
+cbLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+cbLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+cbLayout.Padding = UDim.new(0, 6)
+cbLayout.Parent = cameraBar
+
+local camButtons = {
+	{ "↺ Sola (Q)", function() CustomizerCameraController.RotateLeft(45) end, 82 },
+	{ "↻ Sağa (E)", function() CustomizerCameraController.RotateRight(45) end, 82 },
+	{ "🔍+ Yaklaş", function() CustomizerCameraController.ZoomIn(14) end, 75 },
+	{ "🔍- Uzaklaş", function() CustomizerCameraController.ZoomOut(14) end, 75 },
+	{ "🎯 Merkez", function() CustomizerCameraController.ResetCenter() end, 62 },
+}
+
+for _, cb in ipairs(camButtons) do
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.new(0, cb[3], 0, 30)
+	b.BackgroundColor3 = Color3.fromRGB(35, 42, 56)
+	b.Text = cb[1]
+	b.TextColor3 = Color3.fromRGB(235, 240, 250)
+	b.Font = Enum.Font.FredokaOne
+	b.TextSize = 11
+	b.ZIndex = 16
+	b.Parent = cameraBar
+	corner(b, 6)
+	b.MouseButton1Click:Connect(cb[2])
+end
+
+-- 1c. Sürükle & Bırak Alt Bilgi Çubuğu
+local dragBanner = Instance.new("Frame")
+dragBanner.Name = "DragBanner"
+dragBanner.Size = UDim2.new(0, 520, 0, 42)
+dragBanner.Position = UDim2.new(0.5, -260, 1, -80)
+dragBanner.BackgroundColor3 = Color3.fromRGB(18, 42, 28)
+dragBanner.BackgroundTransparency = 0.05
+dragBanner.BorderSizePixel = 0
+dragBanner.ZIndex = 25
+dragBanner.Visible = false
+dragBanner.Parent = screenGui
+corner(dragBanner, 10)
+stroke(dragBanner, Color3.fromRGB(50, 205, 90), 2)
+
+local dragBannerText = Instance.new("TextLabel")
+dragBannerText.Size = UDim2.new(1, 0, 1, 0)
+dragBannerText.BackgroundTransparency = 1
+dragBannerText.Text = "🖐️ SÜRÜKLENİYOR | [R] Döndür | [Sol Tık] Yerleştir | [ESC] İptal"
+dragBannerText.TextColor3 = Color3.fromRGB(220, 255, 230)
+dragBannerText.Font = Enum.Font.FredokaOne
+dragBannerText.TextSize = 13
+dragBannerText.ZIndex = 26
+dragBannerText.Parent = dragBanner
 
 -- 2. Ana Panel (Drawer Card)
 local panel = Instance.new("Frame")
@@ -59,15 +139,8 @@ panel.BackgroundTransparency = 0.04
 panel.BorderSizePixel = 0
 panel.Visible = false
 panel.Parent = screenGui
-
-local pCorner = Instance.new("UICorner")
-pCorner.CornerRadius = UDim.new(0, 14)
-pCorner.Parent = panel
-
-local pStroke = Instance.new("UIStroke")
-pStroke.Color = Color3.fromRGB(55, 60, 75)
-pStroke.Thickness = 2
-pStroke.Parent = panel
+corner(panel, 14)
+stroke(panel, Color3.fromRGB(55, 60, 75), 2)
 
 -- Başlık Çubuğu
 local header = Instance.new("Frame")
@@ -76,10 +149,7 @@ header.Size = UDim2.new(1, 0, 0, 46)
 header.BackgroundColor3 = Color3.fromRGB(35, 40, 50)
 header.BorderSizePixel = 0
 header.Parent = panel
-
-local hCorner = Instance.new("UICorner")
-hCorner.CornerRadius = UDim.new(0, 14)
-hCorner.Parent = header
+corner(header, 14)
 
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(0.8, 0, 1, 0)
@@ -101,9 +171,7 @@ closeBtn.TextColor3 = Color3.fromRGB(240, 240, 240)
 closeBtn.Font = Enum.Font.FredokaOne
 closeBtn.TextSize = 16
 closeBtn.Parent = header
-local cBtnCorner = Instance.new("UICorner")
-cBtnCorner.CornerRadius = UDim.new(0, 8)
-cBtnCorner.Parent = closeBtn
+corner(closeBtn, 8)
 
 -- Sekme Barı (Tab Bar)
 local tabBar = Instance.new("Frame")
@@ -112,9 +180,7 @@ tabBar.Size = UDim2.new(0.92, 0, 0, 36)
 tabBar.Position = UDim2.new(0.04, 0, 0, 54)
 tabBar.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
 tabBar.Parent = panel
-local tbCorner = Instance.new("UICorner")
-tbCorner.CornerRadius = UDim.new(0, 8)
-tbCorner.Parent = tabBar
+corner(tabBar, 8)
 
 local activeTab = 1
 local tabButtons: { TextButton } = {}
@@ -143,9 +209,7 @@ for i, tName in ipairs(tabNames) do
 	tBtn.Font = Enum.Font.FredokaOne
 	tBtn.TextSize = 12
 	tBtn.Parent = tabBar
-	local bCorner = Instance.new("UICorner")
-	bCorner.CornerRadius = UDim.new(0, 6)
-	bCorner.Parent = tBtn
+	corner(tBtn, 6)
 
 	table.insert(tabButtons, tBtn)
 	table.insert(tabPages, createTabPage(i))
@@ -178,9 +242,7 @@ local infoCard = Instance.new("Frame")
 infoCard.Size = UDim2.new(1, 0, 0, 75)
 infoCard.BackgroundColor3 = Color3.fromRGB(32, 36, 46)
 infoCard.Parent = page1
-local icCorner = Instance.new("UICorner")
-icCorner.CornerRadius = UDim.new(0, 8)
-icCorner.Parent = infoCard
+corner(infoCard, 8)
 
 local selNameLabel = Instance.new("TextLabel")
 selNameLabel.Size = UDim2.new(0.9, 0, 0.45, 0)
@@ -212,9 +274,7 @@ pickListFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
 pickListFrame.ScrollBarThickness = 5
 pickListFrame.CanvasSize = UDim2.new(0, 0, 0, 360)
 pickListFrame.Parent = page1
-local plCorner = Instance.new("UICorner")
-plCorner.CornerRadius = UDim.new(0, 8)
-plCorner.Parent = pickListFrame
+corner(pickListFrame, 8)
 
 local plLayout = Instance.new("UIListLayout")
 plLayout.Padding = UDim.new(0, 4)
@@ -243,6 +303,52 @@ local function updateSelection(model: Model?)
 	end
 end
 
+local function startDragging(model: Model)
+	if not model or isDragging then return end
+	isDragging = true
+	draggedModel = model
+	dragInitialCF = model:GetPivot()
+	local _, rotY, _ = dragInitialCF:ToEulerAnglesYXZ()
+	dragYaw = math.round(math.deg(rotY))
+
+	if selectionHighlight then
+		selectionHighlight.FillColor = Color3.fromRGB(50, 220, 90)
+		selectionHighlight.FillTransparency = 0.65
+		selectionHighlight.OutlineColor = Color3.fromRGB(100, 255, 140)
+	end
+	panel.Visible = false
+	dragBanner.Visible = true
+	dragBannerText.Text = string.format("🖐️ SÜRÜKLENİYOR: %s | [R] Döndür (%d°) | [Sol Tık] Yerleştir | [ESC] İptal", model.Name, dragYaw)
+end
+
+local function stopDragging(commit: boolean)
+	if not isDragging or not draggedModel then return end
+	isDragging = false
+	dragBanner.Visible = false
+	panel.Visible = true
+
+	if commit then
+		local pivot = draggedModel:GetPivot()
+		Network.CustomizeModelEvent:FireServer(currentPlotIndex, draggedModel.Name, "SetCFrame", {
+			X = pivot.Position.X,
+			Y = pivot.Position.Y,
+			Z = pivot.Position.Z,
+			Yaw = dragYaw,
+		})
+	else
+		if dragInitialCF then
+			draggedModel:PivotTo(dragInitialCF)
+		end
+	end
+
+	if selectionHighlight then
+		selectionHighlight.FillColor = Color3.fromRGB(255, 220, 40)
+		selectionHighlight.FillTransparency = 0.75
+		selectionHighlight.OutlineColor = Color3.fromRGB(255, 240, 100)
+	end
+	draggedModel = nil
+end
+
 local function refreshPlotObjectsList()
 	for _, child in ipairs(pickListFrame:GetChildren()) do
 		if child:IsA("TextButton") then child:Destroy() end
@@ -263,9 +369,7 @@ local function refreshPlotObjectsList()
 		btn.TextSize = 12
 		btn.TextXAlignment = Enum.TextXAlignment.Left
 		btn.Parent = pickListFrame
-		local bC = Instance.new("UICorner")
-		bC.CornerRadius = UDim.new(0, 6)
-		bC.Parent = btn
+		corner(btn, 6)
 
 		btn.MouseButton1Click:Connect(function()
 			updateSelection(targetModel)
@@ -304,9 +408,7 @@ scaleSection.Size = UDim2.new(1, 0, 0, 130)
 scaleSection.Position = UDim2.new(0, 0, 0, 215)
 scaleSection.BackgroundColor3 = Color3.fromRGB(28, 32, 40)
 scaleSection.Parent = page1
-local scCorner = Instance.new("UICorner")
-scCorner.CornerRadius = UDim.new(0, 8)
-scCorner.Parent = scaleSection
+corner(scaleSection, 8)
 
 local scaleTitle = Instance.new("TextLabel")
 scaleTitle.Size = UDim2.new(0.9, 0, 0, 24)
@@ -352,37 +454,48 @@ for i, sb in ipairs(scaleButtons) do
 	sBtn.Font = Enum.Font.FredokaOne
 	sBtn.TextSize = 12
 	sBtn.Parent = scaleSection
-	local sbc = Instance.new("UICorner")
-	sbc.CornerRadius = UDim.new(0, 6)
-	sbc.Parent = sBtn
+	corner(sBtn, 6)
 
 	sBtn.MouseButton1Click:Connect(function()
 		applyScaleRatio(sb.ratio)
 	end)
 end
 
--- Çevir & Kaydır Kontrolleri
+-- Çevir & Sürükle-Taşı Kontrolleri
 local moveSection = Instance.new("Frame")
 moveSection.Size = UDim2.new(1, 0, 0, 75)
 moveSection.Position = UDim2.new(0, 0, 0, 352)
 moveSection.BackgroundColor3 = Color3.fromRGB(28, 32, 40)
 moveSection.Parent = page1
-local mcCorner = Instance.new("UICorner")
-mcCorner.CornerRadius = UDim.new(0, 8)
-mcCorner.Parent = moveSection
+corner(moveSection, 8)
+
+local dragBtn = Instance.new("TextButton")
+dragBtn.Size = UDim2.new(0.46, 0, 0, 38)
+dragBtn.Position = UDim2.new(0.04, 0, 0.5, -19)
+dragBtn.BackgroundColor3 = Color3.fromRGB(35, 100, 60)
+dragBtn.Text = "🖐️ Sürükle / Taşı"
+dragBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+dragBtn.Font = Enum.Font.FredokaOne
+dragBtn.TextSize = 12
+dragBtn.Parent = moveSection
+corner(dragBtn, 6)
+
+dragBtn.MouseButton1Click:Connect(function()
+	if selectedModel then
+		startDragging(selectedModel)
+	end
+end)
 
 local rotateBtn = Instance.new("TextButton")
-rotateBtn.Size = UDim2.new(0.46, 0, 0, 38)
-rotateBtn.Position = UDim2.new(0.04, 0, 0.5, -19)
+rotateBtn.Size = UDim2.new(0.24, 0, 0, 38)
+rotateBtn.Position = UDim2.new(0.53, 0, 0.5, -19)
 rotateBtn.BackgroundColor3 = Color3.fromRGB(45, 60, 85)
-rotateBtn.Text = "↻ 90° Döndür"
+rotateBtn.Text = "↻ 90°"
 rotateBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 rotateBtn.Font = Enum.Font.FredokaOne
-rotateBtn.TextSize = 13
+rotateBtn.TextSize = 12
 rotateBtn.Parent = moveSection
-local rbc = Instance.new("UICorner")
-rbc.CornerRadius = UDim.new(0, 6)
-rbc.Parent = rotateBtn
+corner(rotateBtn, 6)
 
 rotateBtn.MouseButton1Click:Connect(function()
 	if not selectedModel then return end
@@ -390,17 +503,15 @@ rotateBtn.MouseButton1Click:Connect(function()
 end)
 
 local clickSelectBtn = Instance.new("TextButton")
-clickSelectBtn.Size = UDim2.new(0.46, 0, 0, 38)
-clickSelectBtn.Position = UDim2.new(0.52, 0, 0.5, -19)
+clickSelectBtn.Size = UDim2.new(0.18, 0, 0, 38)
+clickSelectBtn.Position = UDim2.new(0.79, 0, 0.5, -19)
 clickSelectBtn.BackgroundColor3 = Color3.fromRGB(85, 70, 35)
-clickSelectBtn.Text = "🔄 Listeyi Yenile"
+clickSelectBtn.Text = "🔄"
 clickSelectBtn.TextColor3 = Color3.fromRGB(255, 230, 100)
 clickSelectBtn.Font = Enum.Font.FredokaOne
 clickSelectBtn.TextSize = 13
 clickSelectBtn.Parent = moveSection
-local csbc = Instance.new("UICorner")
-csbc.CornerRadius = UDim.new(0, 6)
-csbc.Parent = clickSelectBtn
+corner(clickSelectBtn, 6)
 
 clickSelectBtn.MouseButton1Click:Connect(function()
 	refreshPlotObjectsList()
@@ -417,22 +528,15 @@ slotScroll.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
 slotScroll.ScrollBarThickness = 5
 slotScroll.CanvasSize = UDim2.new(0, 0, 0, 480)
 slotScroll.Parent = page2
-local ssCorner = Instance.new("UICorner")
-ssCorner.CornerRadius = UDim.new(0, 8)
-ssCorner.Parent = slotScroll
+corner(slotScroll, 8)
 
 local ssLayout = Instance.new("UIListLayout")
 ssLayout.Padding = UDim.new(0, 8)
 ssLayout.Parent = slotScroll
 
 local availableShops = {
-	{ id = "Bakery", name = "🥖 Taş Fırın & Kafe" },
-	{ id = "Market", name = "🛒 Gross Süpermarket" },
-	{ id = "Fountain", name = "⛲ Süs Havuzu & Fıskiye" },
-	{ id = "Barber", name = "💈 VIP Erkek Kuaförü" },
-	{ id = "PetShop", name = "🐾 Pati Pet Shop" },
-	{ id = "Restaurant", name = "🍽️ Bistro Restaurant" },
-	{ id = "Empty", name = "❌ Boş Bırak" },
+	{ "Bakery", "🥖 Taş Fırın" }, { "Market", "🛒 Süpermarket" }, { "Fountain", "⛲ Süs Havuzu" },
+	{ "Barber", "💈 VIP Kuaför" }, { "PetShop", "🐾 Pet Shop" }, { "Restaurant", "🍽️ Bistro" }, { "Empty", "❌ Boş" },
 }
 
 for slotIdx = 1, 6 do
@@ -440,9 +544,7 @@ for slotIdx = 1, 6 do
 	card.Size = UDim2.new(1, -8, 0, 70)
 	card.BackgroundColor3 = Color3.fromRGB(30, 35, 45)
 	card.Parent = slotScroll
-	local cc = Instance.new("UICorner")
-	cc.CornerRadius = UDim.new(0, 8)
-	cc.Parent = card
+	corner(card, 8)
 
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.new(0.9, 0, 0, 24)
@@ -455,7 +557,6 @@ for slotIdx = 1, 6 do
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Parent = card
 
-	-- Seçim Butonları Kaydırma
 	local optScroll = Instance.new("ScrollingFrame")
 	optScroll.Size = UDim2.new(0.94, 0, 0, 32)
 	optScroll.Position = UDim2.new(0.03, 0, 0, 30)
@@ -474,17 +575,15 @@ for slotIdx = 1, 6 do
 		local oBtn = Instance.new("TextButton")
 		oBtn.Size = UDim2.new(0, 110, 1, 0)
 		oBtn.BackgroundColor3 = Color3.fromRGB(42, 48, 62)
-		oBtn.Text = shop.name
+		oBtn.Text = shop[2]
 		oBtn.TextColor3 = Color3.fromRGB(230, 235, 245)
 		oBtn.Font = Enum.Font.FredokaOne
 		oBtn.TextSize = 11
 		oBtn.Parent = optScroll
-		local obc = Instance.new("UICorner")
-		obc.CornerRadius = UDim.new(0, 6)
-		obc.Parent = oBtn
+		corner(oBtn, 6)
 
 		oBtn.MouseButton1Click:Connect(function()
-			Network.ChangePromenadeSlotEvent:FireServer(currentPlotIndex, slotIdx, shop.id)
+			Network.ChangePromenadeSlotEvent:FireServer(currentPlotIndex, slotIdx, shop[1])
 			oBtn.BackgroundColor3 = Color3.fromRGB(60, 110, 75)
 			task.delay(0.6, function()
 				oBtn.BackgroundColor3 = Color3.fromRGB(42, 48, 62)
@@ -503,49 +602,36 @@ local catScroll = Instance.new("ScrollingFrame")
 catScroll.Size = UDim2.new(1, 0, 1, 0)
 catScroll.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
 catScroll.ScrollBarThickness = 5
-catScroll.CanvasSize = UDim2.new(0, 0, 0, 600)
+catScroll.CanvasSize = UDim2.new(0, 0, 0, 580)
 catScroll.Parent = page3
-local csc = Instance.new("UICorner")
-csc.CornerRadius = UDim.new(0, 8)
-csc.Parent = catScroll
+corner(catScroll, 8)
 
 local csLayout = Instance.new("UIListLayout")
-csLayout.Padding = UDim.new(0, 6)
+csLayout.Padding = UDim.new(0, 5)
 csLayout.Parent = catScroll
 
 local catalogItems = {
-	{ cat = "Buildings", name = "Level_1", label = "🏠 Ahşap Kulübe (Lv.1)" },
-	{ cat = "Buildings", name = "Level_2", label = "🏡 Tuğla Malikâne (Lv.2)" },
-	{ cat = "Buildings", name = "Level_3", label = "🏰 Lüks Villa (Lv.3)" },
-	{ cat = "Buildings", name = "Level_4", label = "🏢 Rezidans Apartman (Lv.4)" },
-	{ cat = "Buildings", name = "Level_5", label = "🏙️ Prestij Gökdelen (Lv.5)" },
-	{ cat = "Commercial", name = "Bakery", label = "🥖 Taş Fırın Dükkanı" },
-	{ cat = "Commercial", name = "Market", label = "🛒 Süpermarket" },
-	{ cat = "Commercial", name = "Fountain", label = "⛲ Süs Havuzu" },
-	{ cat = "Commercial", name = "Barber", label = "💈 Kuaför Salonu" },
-	{ cat = "Commercial", name = "Restaurant", label = "🍽️ Bistro Kafe" },
-	{ cat = "Trees", name = "PineTree", label = "🌲 Dağ Çamı Ağacı" },
-	{ cat = "Trees", name = "GardenTree", label = "🌳 Bahçe Meşe Ağacı" },
-	{ cat = "Trees", name = "CypressTree", label = "🌲 Selvi Ağacı" },
-	{ cat = "Props", name = "StreetLamp", label = "🏮 Sokak Lambası" },
-	{ cat = "Props", name = "Bench", label = "🪑 Park Bankı" },
-	{ cat = "Props", name = "Planter", label = "🪴 Çiçeklik Kutusu" },
+	{ "Buildings", "Level_1", "🏠 Ahşap Kulübe (Lv.1)" }, { "Buildings", "Level_2", "🏡 Tuğla Malikâne (Lv.2)" },
+	{ "Buildings", "Level_3", "🏰 Lüks Villa (Lv.3)" }, { "Buildings", "Level_4", "🏢 Rezidans Apartman (Lv.4)" },
+	{ "Buildings", "Level_5", "🏙️ Prestij Gökdelen (Lv.5)" }, { "Commercial", "Bakery", "🥖 Taş Fırın Dükkanı" },
+	{ "Commercial", "Market", "🛒 Süpermarket" }, { "Commercial", "Fountain", "⛲ Süs Havuzu" },
+	{ "Commercial", "Barber", "💈 Kuaför Salonu" }, { "Commercial", "Restaurant", "🍽️ Bistro Kafe" },
+	{ "Trees", "PineTree", "🌲 Dağ Çamı Ağacı" }, { "Trees", "GardenTree", "🌳 Bahçe Meşe Ağacı" },
+	{ "Props", "StreetLamp", "🏮 Sokak Lambası" }, { "Props", "Bench", "🪑 Park Bankı" }, { "Props", "Planter", "🪴 Çiçeklik" },
 }
 
 for _, item in ipairs(catalogItems) do
 	local row = Instance.new("Frame")
-	row.Size = UDim2.new(1, -8, 0, 36)
+	row.Size = UDim2.new(1, -8, 0, 34)
 	row.BackgroundColor3 = Color3.fromRGB(30, 35, 46)
 	row.Parent = catScroll
-	local rc = Instance.new("UICorner")
-	rc.CornerRadius = UDim.new(0, 6)
-	rc.Parent = row
+	corner(row, 6)
 
 	local lbl = Instance.new("TextLabel")
 	lbl.Size = UDim2.new(0.65, 0, 1, 0)
 	lbl.Position = UDim2.new(0.04, 0, 0, 0)
 	lbl.BackgroundTransparency = 1
-	lbl.Text = item.label
+	lbl.Text = item[3]
 	lbl.TextColor3 = Color3.fromRGB(230, 235, 245)
 	lbl.Font = Enum.Font.FredokaOne
 	lbl.TextSize = 12
@@ -561,12 +647,10 @@ for _, item in ipairs(catalogItems) do
 	spawnBtn.Font = Enum.Font.FredokaOne
 	spawnBtn.TextSize = 11
 	spawnBtn.Parent = row
-	local spc = Instance.new("UICorner")
-	spc.CornerRadius = UDim.new(0, 6)
-	spc.Parent = spawnBtn
+	corner(spawnBtn, 6)
 
 	spawnBtn.MouseButton1Click:Connect(function()
-		Network.SpawnAssetOnPlotEvent:FireServer(currentPlotIndex, item.cat, item.name)
+		Network.SpawnAssetOnPlotEvent:FireServer(currentPlotIndex, item[1], item[2])
 		spawnBtn.BackgroundColor3 = Color3.fromRGB(80, 140, 90)
 		task.delay(0.5, function()
 			spawnBtn.BackgroundColor3 = Color3.fromRGB(50, 95, 60)
@@ -575,32 +659,103 @@ for _, item in ipairs(catalogItems) do
 	end)
 end
 
--- Aç/Kapa Etkileşimi
+local function getPlotOrigin(): Vector3
+	local plotFolder = Workspace:FindFirstChild(string.format("Plot_%s_%d", localPlayer.Name, currentPlotIndex))
+	local ground = plotFolder and plotFolder:FindFirstChild("PlotGround") :: BasePart?
+	return ground and ground.Position or Vector3.new(0, 4.4, 0)
+end
+
+-- Aç/Kapa Etkileşimi (360° Kuş Bakışı Kamera Entegrasyonu)
 local function togglePanel()
 	panel.Visible = not panel.Visible
 	toggleBtn.BackgroundColor3 = panel.Visible and Color3.fromRGB(60, 70, 90) or Color3.fromRGB(35, 40, 50)
+	cameraBar.Visible = panel.Visible
 	if panel.Visible then
+		CustomizerCameraController.Enable(getPlotOrigin())
 		refreshPlotObjectsList()
 	else
+		if isDragging then stopDragging(false) end
+		CustomizerCameraController.Disable()
 		updateSelection(nil)
 	end
 end
 
 panel:GetPropertyChangedSignal("Visible"):Connect(function()
-	if panel.Visible then
-		refreshPlotObjectsList()
-	end
+	if panel.Visible then refreshPlotObjectsList() end
 end)
 
 toggleBtn.MouseButton1Click:Connect(togglePanel)
 closeBtn.MouseButton1Click:Connect(togglePanel)
 
--- F4 Kısayol Tuşu ile Aç/Kapa
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-	if input.KeyCode == Enum.KeyCode.F4 then
-		togglePanel()
+-- Canlı Sürükleme Render Döngüsü (Raycasting ve Zemin Kotu)
+RunService.RenderStepped:Connect(function()
+	if not (isDragging and draggedModel) then return end
+
+	local mousePos = UserInputService:GetMouseLocation()
+	local ray = Camera:ViewportPointToRay(mousePos.X, mousePos.Y)
+	local plotFolder = Workspace:FindFirstChild(string.format("Plot_%s_%d", localPlayer.Name, currentPlotIndex))
+	if not plotFolder then return end
+
+	local ground = plotFolder:FindFirstChild("PlotGround") :: BasePart?
+	if not ground then return end
+
+	local rayParams = RaycastParams.new()
+	rayParams.FilterType = Enum.RaycastFilterType.Include
+	rayParams.FilterDescendantsInstances = { ground, plotFolder:FindFirstChild("CommercialPromenade") or ground }
+
+	local hit = Workspace:Raycast(ray.Origin, ray.Direction * 1000, rayParams)
+	if hit then
+		local origin = ground.Position
+		local clampedX = math.clamp(hit.Position.X, origin.X - 35, origin.X + 35)
+		local clampedZ = math.clamp(hit.Position.Z, origin.Z - 35, origin.Z + 35)
+
+		local targetRot = CFrame.Angles(0, math.rad(dragYaw), 0)
+		draggedModel:PivotTo(CFrame.new(clampedX, origin.Y, clampedZ) * targetRot)
+
+		-- Tabana sıfırla
+		local minY = math.huge
+		for _, p in ipairs(draggedModel:GetDescendants()) do
+			if p:IsA("BasePart") then
+				minY = math.min(minY, p.Position.Y - p.Size.Y / 2)
+			end
+		end
+		local isProm = draggedModel:IsDescendantOf(plotFolder:FindFirstChild("CommercialPromenade") or plotFolder)
+		local groundY = origin.Y + (isProm and 2.2 or 2.0)
+		draggedModel:PivotTo(draggedModel:GetPivot() + Vector3.new(0, groundY - minY, 0))
 	end
 end)
 
-print("🛠️ DevCustomizerUI (Tasarım & Geliştirme Motoru Arayüzü) Başlatıldı. [F4]")
+-- Klavye ve Fare Giriş Dinleyicisi
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if input.KeyCode == Enum.KeyCode.F4 and not gameProcessed then
+		togglePanel()
+	elseif input.KeyCode == Enum.KeyCode.R and isDragging and draggedModel then
+		dragYaw = (dragYaw + 45) % 360
+		dragBannerText.Text = string.format("🖐️ SÜRÜKLENİYOR: %s | [R] Döndür (%d°) | [Sol Tık] Bırak | [ESC] İptal", draggedModel.Name, dragYaw)
+	elseif input.KeyCode == Enum.KeyCode.Escape and isDragging then
+		stopDragging(false)
+	elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
+		if isDragging and not gameProcessed then
+			stopDragging(true)
+		elseif panel.Visible and not gameProcessed then
+			-- 3D Sahne Tıklama ile Seçim
+			local mousePos = UserInputService:GetMouseLocation()
+			local ray = Camera:ViewportPointToRay(mousePos.X, mousePos.Y)
+			local plotFolder = Workspace:FindFirstChild(string.format("Plot_%s_%d", localPlayer.Name, currentPlotIndex))
+			if plotFolder then
+				local rayParams = RaycastParams.new()
+				rayParams.FilterType = Enum.RaycastFilterType.Include
+				rayParams.FilterDescendantsInstances = { plotFolder }
+				local hit = Workspace:Raycast(ray.Origin, ray.Direction * 1000, rayParams)
+				if hit and hit.Instance then
+					local clicked = hit.Instance:FindFirstAncestorOfClass("Model")
+					if clicked and (clicked.Parent == plotFolder or (clicked.Parent and clicked.Parent.Name == "CommercialPromenade")) then
+						updateSelection(clicked)
+					end
+				end
+			end
+		end
+	end
+end)
+
+print("🛠️ DevCustomizerUI (360° Kuş Bakışı Kamera & Sürükle-Bırak Motoru) Aktif. [F4]")

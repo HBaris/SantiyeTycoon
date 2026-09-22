@@ -84,6 +84,44 @@ function CustomizerService.Initialize()
 			model:PivotTo(pivot * CFrame.Angles(0, math.rad(angleDeg), 0))
 			print(string.format("[CustomizerService] %s modeli %s için %d° döndürüldü.", targetName, player.Name, angleDeg))
 
+		elseif action == "SetCFrame" or action == "Move" then
+			if typeof(value) == "table" then
+				local targetX = tonumber(value.X)
+				local targetZ = tonumber(value.Z)
+				local targetYaw = tonumber(value.Yaw) or 0
+
+				if targetX and targetZ then
+					local clampedX = math.clamp(targetX, origin.X - 36, origin.X + 36)
+					local clampedZ = math.clamp(targetZ, origin.Z - 36, origin.Z + 36)
+
+					local newRot = CFrame.Angles(0, math.rad(targetYaw), 0)
+					model:PivotTo(CFrame.new(clampedX, origin.Y, clampedZ) * newRot)
+
+					-- Zemin hizalama (minY'yi parsel zemin kotuna sıfırla)
+					local currentPivot = model:GetPivot()
+					local minY = math.huge
+					for _, p in ipairs(model:GetDescendants()) do
+						if p:IsA("BasePart") then
+							minY = math.min(minY, p.Position.Y - (p.Size.Y / 2))
+						end
+					end
+
+					local isPromenade = model:IsDescendantOf(plotFolder:FindFirstChild("CommercialPromenade") or plotFolder)
+					local groundY = origin.Y + (isPromenade and 2.2 or 2.0)
+					local shiftY = groundY - minY
+					local finalCF = currentPivot + Vector3.new(0, shiftY, 0)
+					model:PivotTo(finalCF)
+
+					DataService.SetModelPosition(player, targetName, {
+						X = finalCF.Position.X,
+						Y = finalCF.Position.Y,
+						Z = finalCF.Position.Z,
+						Yaw = targetYaw
+					})
+					print(string.format("[CustomizerService] %s modeli %s için (%.1f, %.1f) konumuna yerleştirildi.", targetName, player.Name, clampedX, clampedZ))
+				end
+			end
+
 		elseif action == "Nudge" then
 			if typeof(value) == "Vector3" then
 				local clamped = Vector3.new(

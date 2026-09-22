@@ -266,11 +266,14 @@ function DataService.GetCustomizer(player: Player)
 	local profile = profiles[player]
 	if profile then
 		if not profile.Customizer then
-			profile.Customizer = { Scales = {}, Slots = {} }
+			profile.Customizer = { Scales = {}, Slots = {}, Positions = {} }
+		end
+		if not profile.Customizer.Positions then
+			profile.Customizer.Positions = {}
 		end
 		return profile.Customizer
 	end
-	return { Scales = {}, Slots = {} }
+	return { Scales = {}, Slots = {}, Positions = {} }
 end
 
 function DataService.SetModelScale(player: Player, modelKey: string, scale: number)
@@ -291,6 +294,16 @@ end
 function DataService.GetPromenadeSlot(player: Player, slotIndex: number): string?
 	local customizer = DataService.GetCustomizer(player)
 	return customizer.Slots[tostring(slotIndex)]
+end
+
+function DataService.SetModelPosition(player: Player, modelKey: string, posData: { X: number, Y: number, Z: number, Yaw: number })
+	local customizer = DataService.GetCustomizer(player)
+	customizer.Positions[modelKey] = posData
+end
+
+function DataService.GetModelPosition(player: Player, modelKey: string): { X: number, Y: number, Z: number, Yaw: number }?
+	local customizer = DataService.GetCustomizer(player)
+	return customizer.Positions and customizer.Positions[modelKey]
 end
 
 return DataService
