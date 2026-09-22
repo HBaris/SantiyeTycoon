@@ -42,7 +42,8 @@ function CityLifeService.spawnWorkerNPC(parent: Instance, name: string, role: st
 	local tagGui = Instance.new("BillboardGui")
 	tagGui.Size = UDim2.new(4.5, 0, 1.4, 0)
 	tagGui.StudsOffset = Vector3.new(0, 3.2, 0)
-	tagGui.AlwaysOnTop = true
+	tagGui.AlwaysOnTop = false
+	tagGui.MaxDistance = 35
 	tagGui.Parent = head
 
 	local tagCard = Instance.new("Frame")
@@ -120,7 +121,8 @@ function CityLifeService.spawnCityResident(
 	local tagGui = Instance.new("BillboardGui")
 	tagGui.Size = UDim2.new(4.5, 0, 1.4, 0)
 	tagGui.StudsOffset = Vector3.new(0, 3.2, 0)
-	tagGui.AlwaysOnTop = true
+	tagGui.AlwaysOnTop = false
+	tagGui.MaxDistance = 35
 	tagGui.Parent = head
 
 	local tagCard = Instance.new("Frame")
@@ -235,7 +237,8 @@ function CityLifeService.spawnSeatedResident(
 	local tagGui = Instance.new("BillboardGui")
 	tagGui.Size = UDim2.new(4.5, 0, 1.4, 0)
 	tagGui.StudsOffset = Vector3.new(0, 3.4, 0)
-	tagGui.AlwaysOnTop = true
+	tagGui.AlwaysOnTop = false
+	tagGui.MaxDistance = 35
 	tagGui.Parent = head
 
 	local tagCard = Instance.new("Frame")

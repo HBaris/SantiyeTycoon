@@ -10,6 +10,7 @@ local playerGui = localPlayer:WaitForChild("PlayerGui")
 local Network = require(ReplicatedStorage.Shared.Network)
 local UpgradeConfig = require(ReplicatedStorage.Shared.UpgradeConfig)
 local NumberFormat = require(ReplicatedStorage.Shared.NumberFormat)
+local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 
 local activeTab = "Cash"
 local currentCash = 0
@@ -162,7 +163,7 @@ resLayout.Parent = resourceBar
 local cashLabel = Instance.new("TextLabel")
 cashLabel.Size = UDim2.new(0, 150, 1, 0)
 cashLabel.BackgroundTransparency = 1
-cashLabel.Text = "💰 0 $"
+cashLabel.Text = "🏗️ 0 İP"
 cashLabel.TextColor3 = Color3.fromRGB(20, 20, 20)
 cashLabel.Font = Enum.Font.FredokaOne
 cashLabel.TextSize = 15
@@ -606,7 +607,7 @@ end)
 task.spawn(function()
 	local leaderstats = localPlayer:WaitForChild("leaderstats", 10)
 	if leaderstats then
-		local cashVal = leaderstats:WaitForChild("💰 Kasa ($)", 5) :: IntValue
+		local cashVal = (leaderstats:WaitForChild(GameConfig.CURRENCY_NAME, 5) or leaderstats:WaitForChild("💰 Kasa ($)", 2)) :: IntValue
 		if cashVal then
 			cashVal.Changed:Connect(function(newCash)
 				currentCash = newCash

@@ -85,7 +85,7 @@ function DataService.LoadPlayer(player: Player)
 			if not profile.Plots or type(profile.Plots) ~= "table" then
 				profile.Plots = default.Plots
 			end
-			print(string.format("[DataService] Müteahhit %s şirket verileri yüklendi. Kasa: %d$", player.Name, profile.Cash))
+			print(string.format("[DataService] Müteahhit %s şirket verileri yüklendi. Kasa: %d İP", player.Name, profile.Cash))
 		else
 			profile = createDefaultProfile()
 			print(string.format("[DataService] %s için yeni inşaat şirketi açıldı.", player.Name))

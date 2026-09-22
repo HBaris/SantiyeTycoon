@@ -286,7 +286,7 @@ local function createBuilderHUD()
 		local nextData = GameConfig.BUILDINGS[nextLevel]
 
 		local leaderstats = localPlayer:FindFirstChild("leaderstats")
-		local cashValue = leaderstats and leaderstats:FindFirstChild("💰 Kasa ($)") :: IntValue
+		local cashValue = leaderstats and (leaderstats:FindFirstChild(GameConfig.CURRENCY_NAME) or leaderstats:FindFirstChild("💰 Kasa ($)")) :: IntValue
 		local currentCash = cashValue and cashValue.Value or 0
 
 		if nextData then
@@ -357,7 +357,7 @@ local function createBuilderHUD()
 		upgradeBtn.Size = UDim2.new(0, 320, 0, 68)
 
 		local leaderstats = localPlayer:FindFirstChild("leaderstats")
-		local cashValue = leaderstats and leaderstats:FindFirstChild("💰 Kasa ($)") :: IntValue
+		local cashValue = leaderstats and (leaderstats:FindFirstChild(GameConfig.CURRENCY_NAME) or leaderstats:FindFirstChild("💰 Kasa ($)")) :: IntValue
 		local currentCash = cashValue and cashValue.Value or 0
 
 		local maxLevel = #GameConfig.BUILDINGS
@@ -411,7 +411,7 @@ local function createBuilderHUD()
 	task.spawn(function()
 		local leaderstats = localPlayer:WaitForChild("leaderstats", 10)
 		if leaderstats then
-			local cashValue = leaderstats:WaitForChild("💰 Kasa ($)", 5) :: IntValue
+			local cashValue = (leaderstats:WaitForChild(GameConfig.CURRENCY_NAME, 5) or leaderstats:WaitForChild("💰 Kasa ($)", 2)) :: IntValue
 			if cashValue then
 				cashValue.Changed:Connect(function()
 					updateButtonDisplay(currentBuildingLevel, currentPlotIndex)

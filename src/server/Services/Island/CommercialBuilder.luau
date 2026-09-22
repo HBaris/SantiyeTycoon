@@ -9,6 +9,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local NumberFormat = require(ReplicatedStorage.Shared.NumberFormat)
+local AssetNormalizer = require(ReplicatedStorage.Shared.AssetNormalizer)
 local PlotDataTypes = require(script.Parent.PlotDataTypes)
 
 local createPart = PlotDataTypes.createPart
@@ -24,6 +25,20 @@ local function getReadyCommercialModel(shopId: string): Model?
 	if not commFolder then return nil end
 
 	local candidate = commFolder:FindFirstChild(shopId)
+	if candidate and candidate:IsA("Model") then
+		return candidate
+	end
+	return nil
+end
+
+-- ReplicatedStorage.Assets.Props altındaki hazır sokak mobilyalarını arayan fonksiyon
+local function getReadyPropModel(propId: string): Model?
+	local assets = ReplicatedStorage:FindFirstChild("Assets")
+	if not assets then return nil end
+	local propsFolder = assets:FindFirstChild("Props")
+	if not propsFolder then return nil end
+
+	local candidate = propsFolder:FindFirstChild(propId)
 	if candidate and candidate:IsA("Model") then
 		return candidate
 	end
@@ -64,6 +79,16 @@ end
 
 -- Modern Siyah Sokak Lambası (Dual LED Streetlamp)
 function CommercialBuilder.buildPromenadeLamp(parent: Instance, cf: CFrame): Model
+	local ready = getReadyPropModel("StreetLamp")
+	if ready then
+		local lamp = ready:Clone()
+		lamp.Name = "PromenadeLamp"
+		AssetNormalizer.Normalize(lamp, { MaxHorizontalSize = 3.5, TargetHeight = 11, EnforceAnchored = true })
+		AssetNormalizer.PlaceOnGround(lamp, cf)
+		lamp.Parent = parent
+		return lamp
+	end
+
 	local lamp = Instance.new("Model")
 	lamp.Name = "PromenadeLamp"
 
@@ -89,6 +114,16 @@ end
 
 -- Ahşap & Demir Park Bankı (Promenade Bench)
 function CommercialBuilder.buildBench(parent: Instance, cf: CFrame): Model
+	local ready = getReadyPropModel("Bench")
+	if ready then
+		local bench = ready:Clone()
+		bench.Name = "PromenadeBench"
+		AssetNormalizer.Normalize(bench, { MaxHorizontalSize = 6.0, TargetHeight = 3.5, EnforceAnchored = true })
+		AssetNormalizer.PlaceOnGround(bench, cf)
+		bench.Parent = parent
+		return bench
+	end
+
 	local bench = Instance.new("Model")
 	bench.Name = "PromenadeBench"
 
@@ -113,6 +148,16 @@ end
 
 -- Modern Beton Çiçeklik & Çalı (Modern Concrete Planter)
 function CommercialBuilder.buildPlanter(parent: Instance, cf: CFrame): Model
+	local ready = getReadyPropModel("Planter")
+	if ready then
+		local planter = ready:Clone()
+		planter.Name = "PromenadePlanter"
+		AssetNormalizer.Normalize(planter, { MaxHorizontalSize = 4.5, TargetHeight = 3.0, EnforceAnchored = true })
+		AssetNormalizer.PlaceOnGround(planter, cf)
+		planter.Parent = parent
+		return planter
+	end
+
 	local planter = Instance.new("Model")
 	planter.Name = "PromenadePlanter"
 
@@ -515,7 +560,7 @@ function CommercialBuilder.buildEntranceSign(parent: Instance, cf: CFrame, total
 		rentLabel.Size = UDim2.new(1, 0, 0.35, 0)
 		rentLabel.Position = UDim2.new(0, 0, 0.58, 0)
 		rentLabel.BackgroundTransparency = 1
-		rentLabel.Text = string.format("✨ Toplam Ticari Kira: +%s $/sn", NumberFormat.FormatCash(totalRent))
+		rentLabel.Text = string.format("✨ Toplam Ticari Kira: +%s/sn", NumberFormat.FormatCash(totalRent))
 		rentLabel.TextColor3 = Color3.fromRGB(80, 240, 120)
 		rentLabel.Font = Enum.Font.FredokaOne
 		rentLabel.TextScaled = true

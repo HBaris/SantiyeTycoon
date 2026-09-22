@@ -353,7 +353,7 @@ for i, uKey in ipairs(upgradeKeys) do
 	upgradeBtn.Size = UDim2.new(0, 130, 0, 48)
 	upgradeBtn.Position = UDim2.new(1, -145, 0.5, -24)
 	upgradeBtn.BackgroundColor3 = Color3.fromRGB(255, 180, 20)
-	upgradeBtn.Text = "YÜKSELT\n350 $"
+	upgradeBtn.Text = "YÜKSELT\n350 İP"
 	upgradeBtn.TextColor3 = Color3.fromRGB(20, 20, 20)
 	upgradeBtn.Font = Enum.Font.FredokaOne
 	upgradeBtn.TextSize = 13

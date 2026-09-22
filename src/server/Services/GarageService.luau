@@ -250,7 +250,7 @@ function GarageService.DeliverCargo(player: Player, plotIndex: number)
 
 		-- Tüm istemcilere görsel kargo turbosunu senkronize et
 		Network.SyncTurboStatusEvent:FireAllClients(player, true, GameConfig.CARGO_BOOST_DURATION)
-		print(string.format("[GarageService] %s Proje #%d için %d malzeme teslim etti! 45sn Turbo İnşaat başladı, +%d $ prim kazandı.", player.Name, plotIndex, cargoAmount, bonusCash))
+		print(string.format("[GarageService] %s Proje #%d için %d malzeme teslim etti! 45sn Turbo İnşaat başladı, +%d İP prim kazandı.", player.Name, plotIndex, cargoAmount, bonusCash))
 		return true
 	end
 	return false
@@ -359,7 +359,7 @@ function GarageService.Initialize()
 				Network.SyncResourcesEvent:FireClient(player, profile.Cash, profile.Crystals, profile.Engineers)
 				local leaderstats = player:FindFirstChild("leaderstats")
 				if leaderstats then
-					local cashVal = leaderstats:FindFirstChild("💰 Kasa ($)") :: IntValue
+					local cashVal = (leaderstats:FindFirstChild(GameConfig.CURRENCY_NAME) or leaderstats:FindFirstChild("💰 Kasa ($)")) :: IntValue
 					if cashVal then cashVal.Value = profile.Cash end
 				end
 			end

@@ -94,7 +94,7 @@ function UpgradeService.Initialize()
 			-- Leaderstats güncelle (Kasa değiştiyse)
 			local leaderstats = player:FindFirstChild("leaderstats")
 			if leaderstats and tabName == "Cash" then
-				local cashVal = leaderstats:FindFirstChild("💰 Kasa ($)") :: IntValue
+				local cashVal = (leaderstats:FindFirstChild(GameConfig.CURRENCY_NAME) or leaderstats:FindFirstChild("💰 Kasa ($)")) :: IntValue
 				if cashVal then cashVal.Value = profile.Cash end
 			end
 

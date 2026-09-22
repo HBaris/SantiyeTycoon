@@ -183,7 +183,7 @@ function SiteEquipmentBuilder.buildSiteOffice(parent: Instance, plotOrigin: Vect
 	rateLabel.Size = UDim2.new(0.92, 0, 0.88, 0)
 	rateLabel.Position = UDim2.new(0.04, 0, 0.06, 0)
 	rateLabel.BackgroundTransparency = 1
-	rateLabel.Text = "+10 $/sn 🏗️"
+	rateLabel.Text = "+10 İP/sn 🏗️"
 	rateLabel.TextColor3 = Color3.fromRGB(20, 20, 20)
 	rateLabel.TextStrokeTransparency = 1
 	rateLabel.TextScaled = true

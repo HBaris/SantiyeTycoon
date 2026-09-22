@@ -18,7 +18,10 @@ local Workspace = game:GetService("Workspace")
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local Network = require(ReplicatedStorage.Shared.Network)
 local NumberFormat = require(ReplicatedStorage.Shared.NumberFormat)
+local ZoneConfig = require(ReplicatedStorage.Shared.ZoneConfig)
 local GarageService = require(script.Parent.GarageService)
+local DataService = require(script.Parent.DataService)
+local ServiceBuildingManager = require(script.Parent.ServiceBuildingManager)
 
 -- Alt Servis ve Builder Modülleri
 local Island = script.Parent.Island
@@ -350,6 +353,22 @@ function IslandManager.CreatePlot(
 	playerPlots[player][plotIndex] = plotData
 	IslandManager.UpdateBuildingVisuals(player, plotIndex, buildingLevel)
 
+	-- Cities: Skylines Zon ve Hizmet Binaları Görselleri
+	task.spawn(function()
+		local profile = DataService.GetProfile(player)
+		local pData = profile and profile.Plots and profile.Plots[plotIndex]
+		local zone = (pData and pData.Zone) or "Residential"
+		IslandManager.UpdatePlotZoneVisual(player, plotIndex, zone)
+
+		if profile and profile.Services then
+			for sType, sInfo in pairs(profile.Services) do
+				if sInfo.PlotIndex == plotIndex then
+					IslandManager.PlaceServiceVisual(player, plotIndex, sType)
+				end
+			end
+		end
+	end)
+
 	return plotData
 end
 
@@ -382,7 +401,7 @@ function IslandManager.UpdateBuildingVisuals(player: Player, plotIndex: number, 
 
 	if nextData then
 		-- İNŞAAT DEVAM EDİYOR (Seviye 1, 2, 3, 4)
-		plot.UpgradePadLabel.Text = string.format("🔨 %s (Lv. %d)\nMaliyet: %s $", nextData.Name, nextLevel, NumberFormat.FormatCash(nextData.Cost))
+		plot.UpgradePadLabel.Text = string.format("🔨 %s (Lv. %d)\nMaliyet: %s", nextData.Name, nextLevel, NumberFormat.FormatCash(nextData.Cost))
 		plot.UpgradePadLabel.TextColor3 = Color3.fromRGB(20, 20, 20)
 		plot.UpgradePad.Color = Color3.fromRGB(255, 175, 40)
 		plot.UpgradePad.Transparency = 0
@@ -472,7 +491,7 @@ function IslandManager.UpdateBuildingVisuals(player: Player, plotIndex: number, 
 			local rCF = CFrame.new(startX, 6.2, sidewalkZ + ((i % 2 == 0) and 2 or -2))
 			CityLifeService.spawnCityResident(resFolder, name, role, outfit, rCF, patrolDist)
 		end
-		print(string.format("[IslandManager] %s için %d. Projede Açık Hava Çarşısı, kira tabelası (+%s $/sn) ve canlı mahalle yaşamı aktif edildi! (Seviye %d)", player.Name, plotIndex, NumberFormat.FormatCash(totalRent), level))
+		print(string.format("[IslandManager] %s için %d. Projede Açık Hava Çarşısı, kira tabelası (+%s/sn) ve canlı mahalle yaşamı aktif edildi! (Seviye %d)", player.Name, plotIndex, NumberFormat.FormatCash(totalRent), level))
 	end
 end
 
@@ -510,6 +529,81 @@ function IslandManager.RemoveAllPlots(player: Player)
 		end
 		playerPlots[player] = nil
 	end
+end
+
+-- ============================================================================
+-- 7. CITIES: SKYLINES BÖLGELEME 3D İNDİKATÖRÜ
+-- ============================================================================
+function IslandManager.UpdatePlotZoneVisual(player: Player, plotIndex: number, zoneType: string)
+	local plot = IslandManager.GetPlot(player, plotIndex)
+	if not plot or not plot.Folder then return end
+
+	local existing = plot.Folder:FindFirstChild("ZoneIndicator")
+	if existing then existing:Destroy() end
+
+	local zoneData = ZoneConfig.GetZone(zoneType) or ZoneConfig.ZONES.Residential
+	local zoneModel = Instance.new("Model")
+	zoneModel.Name = "ZoneIndicator"
+
+	local pillarCF = CFrame.new(plot.Origin + Vector3.new(-8, 2.5, 16))
+	local base = createPart(zoneModel, "ZonePillarBase", Vector3.new(2, 0.6, 2), pillarCF * CFrame.new(0, -2.2, 0), Color3.fromRGB(45, 50, 55), Enum.Material.Concrete, true, true)
+	local post = createPart(zoneModel, "ZonePillarPost", Vector3.new(0.6, 4.5, 0.6), pillarCF, Color3.fromRGB(70, 75, 80), Enum.Material.Metal, true, true)
+	local signHead = createPart(zoneModel, "ZoneSignHead", Vector3.new(3.5, 1.2, 0.4), pillarCF * CFrame.new(0, 2.4, 0), zoneData.Color, Enum.Material.SmoothPlastic, true, false)
+
+	local bb = Instance.new("BillboardGui")
+	bb.Size = UDim2.new(6.5, 0, 2.2, 0)
+	bb.StudsOffset = Vector3.new(0, 2.4, 0)
+	bb.AlwaysOnTop = false
+	bb.MaxDistance = 45
+	bb.Parent = signHead
+
+	local card = Instance.new("Frame")
+	card.Size = UDim2.new(1, 0, 1, 0)
+	card.BackgroundColor3 = Color3.fromRGB(25, 28, 32)
+	card.BackgroundTransparency = 0.05
+	card.Parent = bb
+	local cCorner = Instance.new("UICorner")
+	cCorner.CornerRadius = UDim.new(0, 10)
+	cCorner.Parent = card
+	local cStroke = Instance.new("UIStroke")
+	cStroke.Color = zoneData.Color
+	cStroke.Thickness = 2.5
+	cStroke.Parent = card
+
+	local lbl = Instance.new("TextLabel")
+	lbl.Size = UDim2.new(0.95, 0, 0.95, 0)
+	lbl.Position = UDim2.new(0.025, 0, 0.025, 0)
+	lbl.BackgroundTransparency = 1
+	lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+	lbl.Font = Enum.Font.FredokaOne
+	lbl.TextScaled = true
+	lbl.Text = string.format("%s %s\n(%s)", zoneData.Icon, zoneData.Name, zoneData.Description)
+	lbl.Parent = card
+
+	zoneModel.PrimaryPart = post
+	zoneModel.Parent = plot.Folder
+end
+
+-- ============================================================================
+-- 8. CITIES: SKYLINES HİZMET BİNASI YERLEŞTİRİCİ
+-- ============================================================================
+function IslandManager.PlaceServiceVisual(player: Player, plotIndex: number, serviceType: string)
+	local plot = IslandManager.GetPlot(player, plotIndex)
+	if not plot or not plot.Folder then return end
+
+	local serviceFolder = plot.Folder:FindFirstChild("Services")
+	if not serviceFolder then
+		serviceFolder = Instance.new("Folder")
+		serviceFolder.Name = "Services"
+		serviceFolder.Parent = plot.Folder
+	end
+
+	local existing = serviceFolder:FindFirstChild("Service_" .. serviceType)
+	if existing then existing:Destroy() end
+
+	-- Hizmet binası konumu: Parselin sağ arka köşesi
+	local serviceCF = CFrame.new(plot.Origin + Vector3.new(24, 0, -15)) * CFrame.Angles(0, math.rad(-90), 0)
+	ServiceBuildingManager.BuildServiceVisual(serviceFolder, serviceType, serviceCF)
 end
 
 return IslandManager

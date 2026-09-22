@@ -59,6 +59,18 @@ def main():
             "class": "ModuleScript"
         },
         {
+            "path": os.path.join(base_dir, "shared", "AssetNormalizer.luau"),
+            "parent": 'game:GetService("ReplicatedStorage"):WaitForChild("Shared")',
+            "name": "AssetNormalizer",
+            "class": "ModuleScript"
+        },
+        {
+            "path": os.path.join(base_dir, "shared", "ZoneConfig.luau"),
+            "parent": 'game:GetService("ReplicatedStorage"):WaitForChild("Shared")',
+            "name": "ZoneConfig",
+            "class": "ModuleScript"
+        },
+        {
             "path": os.path.join(base_dir, "shared", "Network.luau"),
             "parent": 'game:GetService("ReplicatedStorage"):WaitForChild("Shared")',
             "name": "Network",
@@ -127,12 +139,36 @@ def main():
             "class": "ModuleScript"
         },
         {
+            "path": os.path.join(base_dir, "server", "Services", "ServiceBuildingManager.luau"),
+            "parent": 'game:GetService("ServerScriptService"):WaitForChild("Server"):WaitForChild("Services")',
+            "name": "ServiceBuildingManager",
+            "class": "ModuleScript"
+        },
+        {
+            "path": os.path.join(base_dir, "server", "Services", "CityManager.luau"),
+            "parent": 'game:GetService("ServerScriptService"):WaitForChild("Server"):WaitForChild("Services")',
+            "name": "CityManager",
+            "class": "ModuleScript"
+        },
+        {
             "path": os.path.join(base_dir, "server", "Services", "ConstructionService.luau"),
             "parent": 'game:GetService("ServerScriptService"):WaitForChild("Server"):WaitForChild("Services")',
             "name": "ConstructionService",
             "class": "ModuleScript"
         },
+        {
+            "path": os.path.join(base_dir, "server", "init.server.luau"),
+            "parent": 'game:GetService("ServerScriptService")',
+            "name": "Server",
+            "class": "Script"
+        },
         # Client Scripts
+        {
+            "path": os.path.join(base_dir, "client", "CityStatsUI.client.luau"),
+            "parent": 'game:GetService("StarterPlayer"):WaitForChild("StarterPlayerScripts"):WaitForChild("Client")',
+            "name": "CityStatsUI",
+            "class": "LocalScript"
+        },
         {
             "path": os.path.join(base_dir, "client", "BuilderToolController.client.luau"),
             "parent": 'game:GetService("StarterPlayer"):WaitForChild("StarterPlayerScripts"):WaitForChild("Client")',

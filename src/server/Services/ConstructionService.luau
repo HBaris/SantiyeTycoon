@@ -9,6 +9,7 @@ local DataService = require(script.Parent.DataService)
 local IslandManager = require(script.Parent.IslandManager)
 local UpgradeService = require(script.Parent.UpgradeService)
 local GarageService = require(script.Parent.GarageService)
+local CityManager = require(script.Parent.CityManager)
 
 local ConstructionService = {}
 local activeBoosts = {} -- [Player] = expireTimestamp
@@ -73,16 +74,27 @@ local function calculateTotalProductionRate(player: Player, isTurbo: boolean): (
 			plotSpeed *= GameConfig.CARGO_BOOST_MULTIPLIER
 		end
 
+		local pIndexNum = tonumber(plotIdx) or 1
+
+		-- Sanayi Bölgesi Bonusu: Malzeme işleme hızını +%50 artırır
+		if plotData.Zone == "Industrial" then
+			plotSpeed *= 1.5
+		end
+
 		totalSpeed += plotSpeed
 
-		-- Şehirleşme / Dükkan Ticari Kira Geliri
-		local rent = IslandManager.GetCommercialRent(plotData.BuildingLevel) or 0
-		totalCommercialRent += rent
+		-- Şehirleşme / Dükkan Ticari Kira Geliri (Ticaret Bölgesi +%75 bonus verir)
+		local baseRent = IslandManager.GetCommercialRent(plotData.BuildingLevel) or 0
+		local commMult = CityManager.GetCommercialMultiplier(player, pIndexNum)
+		totalCommercialRent += (baseRent * commMult)
 	end
 
 	local turboMultiplier = isTurbo and GameConfig.BOOST_MULTIPLIER or 1.0
 	local finalSpeed = totalSpeed * turboMultiplier * multipliers.ProductionMultiplier * multipliers.SpeedMultiplier
-	local finalCashPerSec = math.floor((finalSpeed * GameConfig.PROGRESS_TO_CASH_RATIO) + totalCommercialRent)
+
+	-- Cities: Skylines Memnuniyet Çarpanı: Tüm pasif gelire uygulanır (%80 memnuniyet = %80 gelir)
+	local happinessMultiplier = CityManager.GetHappinessMultiplier(player)
+	local finalCashPerSec = math.floor(((finalSpeed * GameConfig.PROGRESS_TO_CASH_RATIO) + totalCommercialRent) * happinessMultiplier)
 
 	return finalSpeed, finalCashPerSec
 end
@@ -102,7 +114,7 @@ function ConstructionService.Initialize()
 		leaderstats.Name = "leaderstats"
 
 		local cashValue = Instance.new("IntValue")
-		cashValue.Name = "💰 Kasa ($)"
+		cashValue.Name = GameConfig.CURRENCY_NAME
 		cashValue.Value = profile.Cash
 		cashValue.Parent = leaderstats
 
@@ -250,7 +262,7 @@ function ConstructionService.Initialize()
 					DataService.AddCash(player, cashEarned)
 
 					-- Leaderstats Güncelle
-					local cashVal = leaderstats:FindFirstChild("💰 Kasa ($)") :: IntValue
+					local cashVal = (leaderstats:FindFirstChild(GameConfig.CURRENCY_NAME) or leaderstats:FindFirstChild("💰 Kasa ($)")) :: IntValue
 					local speedVal = leaderstats:FindFirstChild("🏗️ Hız (İ/sn)") :: IntValue
 					if cashVal then cashVal.Value = profile.Cash end
 					if speedVal then speedVal.Value = finalSpeed end
@@ -260,10 +272,10 @@ function ConstructionService.Initialize()
 					for _, plot in pairs(allPlots) do
 						if plot.RateLabel then
 							if isTurbo then
-								plot.RateLabel.Text = string.format("🔥 TURBO İNŞAAT: +%d $/sn! 🏗️", cashEarned)
+								plot.RateLabel.Text = string.format("🔥 TURBO İNŞAAT: +%d İP/sn! 🏗️", cashEarned)
 								plot.RateLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
 							else
-								plot.RateLabel.Text = string.format("+%d $/sn 🏗️", cashEarned)
+								plot.RateLabel.Text = string.format("+%d İP/sn 🏗️", cashEarned)
 								plot.RateLabel.TextColor3 = Color3.fromRGB(255, 220, 50)
 							end
 						end
@@ -378,7 +390,7 @@ function ConstructionService.HandleUpgradeBuilding(player: Player, plotIndex: nu
 
 		local leaderstats = player:FindFirstChild("leaderstats")
 		if leaderstats then
-			local cashVal = leaderstats:FindFirstChild("💰 Kasa ($)") :: IntValue
+			local cashVal = (leaderstats:FindFirstChild(GameConfig.CURRENCY_NAME) or leaderstats:FindFirstChild("💰 Kasa ($)")) :: IntValue
 			local speedVal = leaderstats:FindFirstChild("🏗️ Hız (İ/sn)") :: IntValue
 			if cashVal then cashVal.Value = profile.Cash end
 			local newSpeed, _ = calculateTotalProductionRate(player, false)

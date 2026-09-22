@@ -4,7 +4,9 @@ local GameConfig = {}
 GameConfig.GAME_NAME = "Şantiye Tycoon"
 GameConfig.MAX_OFFLINE_SECONDS = 4 * 60 * 60 -- Maksimum 4 saatlik çevrimdışı birikim (14.400 sn)
 GameConfig.OFFLINE_EFFICIENCY = 0.75 -- Çevrimdışı iken normal gelirin %75'i üretilir
-GameConfig.PROGRESS_TO_CASH_RATIO = 1.0 -- 1 İnşaat İlerlemesi = 1 $ Gelir
+GameConfig.CURRENCY_SYMBOL = "İP" -- İnşaat Puanı
+GameConfig.CURRENCY_NAME = "🏗️ Kasa (İP)"
+GameConfig.PROGRESS_TO_CASH_RATIO = 1.0 -- 1 İnşaat İlerlemesi = 1 İP Gelir
 
 -- Manuel Çekiç Vurma Turbo Ayarları
 GameConfig.BOOST_MULTIPLIER = 2.0 -- Çekiçle vurulduğunda inşaat hızı 2 katına çıkar

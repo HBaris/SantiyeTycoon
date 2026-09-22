@@ -62,7 +62,7 @@ local function showWelcomeBackModal(data: { TimeAwaySeconds: number, CashEarned:
 	desc.Size = UDim2.new(0.9, 0, 0, 50)
 	desc.Position = UDim2.new(0.05, 0, 0, 65)
 	desc.BackgroundTransparency = 1
-	desc.Text = string.format("Sen yokken şantiyen +%d $ değerinde ilerleme kaydetti!\nGeçen Süre: %s", data.CashEarned, timeString)
+	desc.Text = string.format("Sen yokken şantiyen +%d İP değerinde ilerleme kaydetti!\nGeçen Süre: %s", data.CashEarned, timeString)
 	desc.TextColor3 = Color3.fromRGB(70, 70, 75)
 	desc.Font = Enum.Font.GothamMedium
 	desc.TextSize = 15

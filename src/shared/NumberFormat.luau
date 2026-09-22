@@ -52,9 +52,9 @@ function NumberFormat.FormatCompact(value: number): string
 	end
 end
 
--- Para birimi sembolüyle birlikte formatlama
+-- İnşaat Puanı (İP) sembolüyle birlikte formatlama
 function NumberFormat.FormatCash(value: number): string
-	return NumberFormat.FormatCompact(value) .. " $"
+	return NumberFormat.FormatCompact(value) .. " İP"
 end
 
 -- Kristal formatlama
