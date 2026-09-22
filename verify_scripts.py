@@ -16,24 +16,28 @@ def main():
             if not fn then
                 table.insert(results, "[ERROR] " .. inst.Name .. ": " .. tostring(err))
             else
-                table.insert(results, "[OK] " .. inst.Name .. " (" .. inst.ClassName .. ")")
+                table.insert(results, "[OK] " .. inst.Name .. " (" .. inst.ClassName .. ", " .. #inst.Source .. " bytes)")
+            end
+        elseif inst:IsA("Folder") then
+            for _, child in ipairs(inst:GetChildren()) do
+                test(child)
             end
         end
     end
 
     local sharedFolder = game:GetService("ReplicatedStorage"):FindFirstChild("Shared")
     if sharedFolder then
-        for _, s in ipairs(sharedFolder:GetChildren()) do test(s) end
+        test(sharedFolder)
     end
 
     local serverServices = game:GetService("ServerScriptService"):FindFirstChild("Server")
     if serverServices and serverServices:FindFirstChild("Services") then
-        for _, s in ipairs(serverServices.Services:GetChildren()) do test(s) end
+        test(serverServices.Services)
     end
 
     local clientFolder = game:GetService("StarterPlayer"):FindFirstChild("StarterPlayerScripts")
     if clientFolder and clientFolder:FindFirstChild("Client") then
-        for _, s in ipairs(clientFolder.Client:GetChildren()) do test(s) end
+        test(clientFolder.Client)
     end
 
     return table.concat(results, "\\n")
@@ -46,6 +50,7 @@ def main():
     })
 
     print(res.get("content", [{}])[0].get("text", ""))
+    client.close()
 
 if __name__ == "__main__":
     main()

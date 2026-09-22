@@ -12,6 +12,26 @@ def main():
     if not os.path.exists(base_dir):
         base_dir = os.path.join(os.path.dirname(__file__), "src")
 
+    # Ensure Island folder exists under ServerScriptService.Server.Services
+    ensure_folders_code = """
+    local sss = game:GetService("ServerScriptService")
+    local server = sss:WaitForChild("Server")
+    local services = server:WaitForChild("Services")
+    local islandFolder = services:FindFirstChild("Island")
+    if not islandFolder then
+        islandFolder = Instance.new("Folder")
+        islandFolder.Name = "Island"
+        islandFolder.Parent = services
+    end
+    return "ENSURED_ISLAND_FOLDER"
+    """
+    res = client.call_tool("execute_luau", {
+        "studio_id": studio_id,
+        "datamodel_type": "Edit",
+        "code": ensure_folders_code
+    })
+    print("Folder check:", res.get("content", [{}])[0].get("text", ""))
+
     files_to_sync = [
         # Shared Modules
         {
@@ -44,7 +64,44 @@ def main():
             "name": "Network",
             "class": "ModuleScript"
         },
-        # Server Services
+        # Server Services - Island Submodules
+        {
+            "path": os.path.join(base_dir, "server", "Services", "Island", "PlotDataTypes.luau"),
+            "parent": 'game:GetService("ServerScriptService"):WaitForChild("Server"):WaitForChild("Services"):WaitForChild("Island")',
+            "name": "PlotDataTypes",
+            "class": "ModuleScript"
+        },
+        {
+            "path": os.path.join(base_dir, "server", "Services", "Island", "IslandEnvironment.luau"),
+            "parent": 'game:GetService("ServerScriptService"):WaitForChild("Server"):WaitForChild("Services"):WaitForChild("Island")',
+            "name": "IslandEnvironment",
+            "class": "ModuleScript"
+        },
+        {
+            "path": os.path.join(base_dir, "server", "Services", "Island", "CommercialBuilder.luau"),
+            "parent": 'game:GetService("ServerScriptService"):WaitForChild("Server"):WaitForChild("Services"):WaitForChild("Island")',
+            "name": "CommercialBuilder",
+            "class": "ModuleScript"
+        },
+        {
+            "path": os.path.join(base_dir, "server", "Services", "Island", "BuildingBuilder.luau"),
+            "parent": 'game:GetService("ServerScriptService"):WaitForChild("Server"):WaitForChild("Services"):WaitForChild("Island")',
+            "name": "BuildingBuilder",
+            "class": "ModuleScript"
+        },
+        {
+            "path": os.path.join(base_dir, "server", "Services", "Island", "SiteEquipmentBuilder.luau"),
+            "parent": 'game:GetService("ServerScriptService"):WaitForChild("Server"):WaitForChild("Services"):WaitForChild("Island")',
+            "name": "SiteEquipmentBuilder",
+            "class": "ModuleScript"
+        },
+        {
+            "path": os.path.join(base_dir, "server", "Services", "Island", "CityLifeService.luau"),
+            "parent": 'game:GetService("ServerScriptService"):WaitForChild("Server"):WaitForChild("Services"):WaitForChild("Island")',
+            "name": "CityLifeService",
+            "class": "ModuleScript"
+        },
+        # Server Services - Core
         {
             "path": os.path.join(base_dir, "server", "Services", "DataService.luau"),
             "parent": 'game:GetService("ServerScriptService"):WaitForChild("Server"):WaitForChild("Services")',
@@ -120,6 +177,7 @@ def main():
         },
     ]
 
+    synced_count = 0
     for item in files_to_sync:
         if not os.path.exists(item["path"]):
             print(f"ERROR: File not found: {item['path']}")
@@ -155,9 +213,10 @@ def main():
 
         content = res.get("content", [{}])[0].get("text", "")
         print(f"[{item['name']}]: {content}")
+        synced_count += 1
 
     client.close()
-    print("\n>>> All 16 scripts synchronized successfully to Roblox Studio! <<<")
+    print(f"\n>>> All {synced_count} scripts synchronized successfully to Roblox Studio! <<<")
 
 if __name__ == "__main__":
     main()
