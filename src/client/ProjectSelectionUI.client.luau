@@ -121,8 +121,6 @@ cardsContainer.Position = UDim2.new(0, 20, 0, 78)
 cardsContainer.BackgroundTransparency = 1
 cardsContainer.Parent = modal
 
-local cardWidth = (800 - 30) / 4
-
 local function openSelection(nextPlotIndex: number)
 	nextPlotIndex = nextPlotIndex or 2
 	local plotCost = GameConfig.GetPlotCost(nextPlotIndex)
@@ -134,12 +132,17 @@ local function openSelection(nextPlotIndex: number)
 		if child:IsA("Frame") then child:Destroy() end
 	end
 
+	local count = #ProjectTypeConfig.ORDER
+	local totalW = 760
+	local gap = 20
+	local cardWidth = math.floor((totalW - ((count - 1) * gap)) / count)
+
 	for i, typeId in ipairs(ProjectTypeConfig.ORDER) do
 		local tData = ProjectTypeConfig.TYPES[typeId]
 		local card = Instance.new("Frame")
 		card.Name = "Card_" .. typeId
 		card.Size = UDim2.new(0, cardWidth, 1, -15)
-		card.Position = UDim2.new(0, (i - 1) * (cardWidth + 10), 0, 5)
+		card.Position = UDim2.new(0, (i - 1) * (cardWidth + gap), 0, 5)
 		card.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 		card.BorderSizePixel = 0
 		card.Parent = cardsContainer

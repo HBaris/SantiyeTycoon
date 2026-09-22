@@ -19,6 +19,7 @@ local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local Network = require(ReplicatedStorage.Shared.Network)
 local NumberFormat = require(ReplicatedStorage.Shared.NumberFormat)
 local ZoneConfig = require(ReplicatedStorage.Shared.ZoneConfig)
+local ProjectTypeConfig = require(ReplicatedStorage.Shared.ProjectTypeConfig)
 local GarageService = require(script.Parent.GarageService)
 local DataService = require(script.Parent.DataService)
 local ServiceBuildingManager = require(script.Parent.ServiceBuildingManager)
@@ -127,7 +128,7 @@ function IslandManager.CreatePlot(
 
 	-- 3. Bina Modeli (Genişletilmiş Arka Parsel Alanı)
 	local buildingOrigin = plotOrigin + Vector3.new(4, 0, -10)
-	local buildingModel = BuildingBuilder.buildBuildingModel(plotFolder, buildingOrigin, buildingLevel)
+	local buildingModel = BuildingBuilder.buildBuildingModel(plotFolder, buildingOrigin, buildingLevel, projectType)
 
 	-- 4. Çekiç Vurma Hedef Alanı
 	local hammerTarget = createPart(plotFolder, "HammerTarget", Vector3.new(34, 28, 34), CFrame.new(buildingOrigin + Vector3.new(0, 14, 0)), Color3.fromRGB(255, 255, 0), Enum.Material.ForceField, true, false)
@@ -355,6 +356,7 @@ function IslandManager.CreatePlot(
 		UnlockGui = unlockGui,
 		CargoPad = cargoPad,
 		Origin = plotOrigin,
+		ProjectType = projectType or "SingleBuilding",
 	}
 
 	playerPlots[player][plotIndex] = plotData
@@ -391,6 +393,41 @@ function IslandManager.GetAllPlots(player: Player): { [number]: PlotData }
 end
 
 -- ============================================================================
+-- 3b. ŞANTİYE GELİŞTİRME PADİ METNİ GÜNCELLEME (İNDİRİM DAHİL)
+-- ============================================================================
+function IslandManager.UpdateUpgradePadText(player: Player, plotIndex: number)
+	local plot = IslandManager.GetPlot(player, plotIndex)
+	if not plot or not plot.UpgradePadLabel then return end
+
+	local profile = DataService.GetProfile(player)
+	local pData = profile and profile.Plots and profile.Plots[plotIndex]
+	local level = (pData and pData.BuildingLevel) or 1
+	local nextLevel = level + 1
+	local nextData = GameConfig.BUILDINGS[nextLevel]
+
+	if not nextData then
+		plot.UpgradePadLabel.Text = "✨ PROJE %100 TAMAMLANDI! ✨\n(Portföyde)"
+		return
+	end
+
+	local pType = (pData and pData.ProjectType) or plot.ProjectType or "SingleBuilding"
+	local pTypeData = ProjectTypeConfig.GetType(pType)
+	local costMult = pTypeData.CostMultiplier or 1.0
+	local baseCost = math.floor(nextData.Cost * costMult)
+
+	local deliveredMats = (pData and pData.DeliveredMaterials) or 0
+	local maxDiscount = math.floor(baseCost * 0.35)
+	local matDiscount = math.min(deliveredMats * 10, maxDiscount)
+	local finalCost = math.max(10, baseCost - matDiscount)
+
+	if matDiscount > 0 then
+		plot.UpgradePadLabel.Text = string.format("🔨 %s (Lv. %d)\nMaliyet: %s\n(-%s İndirim 📦)", nextData.Name, nextLevel, NumberFormat.FormatCash(finalCost), NumberFormat.FormatCash(matDiscount))
+	else
+		plot.UpgradePadLabel.Text = string.format("🔨 %s (Lv. %d)\nMaliyet: %s", nextData.Name, nextLevel, NumberFormat.FormatCash(finalCost))
+	end
+end
+
+-- ============================================================================
 -- 4. BİNA SEVİYESİ YÜKSELTİLDİĞİNDE GÖRSEL YENİLEME & ŞEHİR DÖNGÜSÜ
 -- ============================================================================
 function IslandManager.UpdateBuildingVisuals(player: Player, plotIndex: number, level: number)
@@ -401,14 +438,14 @@ function IslandManager.UpdateBuildingVisuals(player: Player, plotIndex: number, 
 	if plot.BuildingModel then
 		plot.BuildingModel:Destroy()
 	end
-	plot.BuildingModel = BuildingBuilder.buildBuildingModel(plot.Folder, plot.BuildingOrigin, level)
+	plot.BuildingModel = BuildingBuilder.buildBuildingModel(plot.Folder, plot.BuildingOrigin, level, plot.ProjectType)
 
 	local nextLevel = level + 1
 	local nextData = GameConfig.BUILDINGS[nextLevel]
 
 	if nextData then
 		-- İNŞAAT DEVAM EDİYOR (Seviye 1, 2, 3, 4)
-		plot.UpgradePadLabel.Text = string.format("🔨 %s (Lv. %d)\nMaliyet: %s", nextData.Name, nextLevel, NumberFormat.FormatCash(nextData.Cost))
+		IslandManager.UpdateUpgradePadText(player, plotIndex)
 		plot.UpgradePadLabel.TextColor3 = Color3.fromRGB(20, 20, 20)
 		plot.UpgradePad.Color = Color3.fromRGB(255, 175, 40)
 		plot.UpgradePad.Transparency = 0

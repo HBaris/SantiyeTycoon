@@ -3,79 +3,47 @@ local ProjectTypeConfig = {}
 ProjectTypeConfig.TYPES = {
 	SingleBuilding = {
 		Id = "SingleBuilding",
-		Name = "Tekli Hızlı Bina",
-		Icon = "🏠",
-		Badge = "HIZLI BAŞLANGIÇ",
-		Difficulty = "⭐ Kolay",
-		CostMultiplier = 0.6,
-		RewardMultiplier = 1.0,
-		MaxStages = 3,
-		Description = "Düşük maliyetli ve hızlı nakit akışı sağlayan kompakt proje. Yeni şantiyeler için en hızlı başlangıç.",
-		Features = {
-			"⚡ %50 Daha Hızlı Tamamlanma",
-			"💰 Düşük Başlangıç Maliyeti",
-			"👷 2 Aktif İşçi Ekibi",
-		}
-	},
-	IslandProject = {
-		Id = "IslandProject",
-		Name = "Ada Projesi (Klasik)",
-		Icon = "🏝️",
-		Badge = "DENGELİ KLASİK",
-		Difficulty = "⭐⭐ Dengeli",
+		Name = "Müstakil / Tekli Proje",
+		Icon = "🏢",
+		Badge = "DENGELİ TEKLİ BİNA",
+		Difficulty = "⭐ Standart",
 		CostMultiplier = 1.0,
-		RewardMultiplier = 1.8,
+		RewardMultiplier = 1.0,
 		MaxStages = 5,
-		Description = "Kulübeden gökdelene uzanan 5 kademeli mimari serüven. İnşaat bitiminde kule vinç sökülür ve prestij meydanı açılır.",
+		IsMultiBuilding = false,
+		Description = "Parsel üzerinde tek heybetli bir ana bina yükselir. Standart inşaat maliyeti ve dengeli kira geliri.",
 		Features = {
-			"🏛️ 5 Kademeli Mimari İlerleme",
-			"🏗️ Dönen Kule Vinç & Çevre Düzenlemesi",
-			"🚁 Çatıda Helikopter Pisti (Helipad)",
+			"🏢 Tek Bağımsız Ana Yapı",
+			"⚖️ Dengeli İnşaat Maliyeti",
+			"🏗️ Standart Kule Vinç & Şantiye",
 		}
 	},
-	HousingEstate = {
-		Id = "HousingEstate",
-		Name = "Konut Sitesi Projesi",
-		Icon = "🏘️",
-		Badge = "YÜKSEK GETİRİ",
-		Difficulty = "⭐⭐⭐ Zorlu",
-		CostMultiplier = 1.8,
-		RewardMultiplier = 3.5,
+	MultiBuilding = {
+		Id = "MultiBuilding",
+		Name = "Çoklu Bina / Toplu Konut Kompleksi",
+		Icon = "🏙️",
+		Badge = "DEV KOMPLEKS (2-6 BİNA)",
+		Difficulty = "⭐⭐⭐ Zorlu & Prestijli",
+		CostMultiplier = 2.8,
+		RewardMultiplier = 3.2,
 		MaxStages = 5,
-		Description = "Aynı arsa üzerinde 3 bağımsız konut bloğundan oluşan modern yaşam sitesi. Çift kule vinç ve geniş işçi filosu gerektirir.",
+		IsMultiBuilding = true,
+		Description = "Aynı parselde aşama aşama 2 ila 6 binadan oluşan devasa konut ve kule sitesi! Çok daha yüksek maliyet, katlanan nüfus ve devasa kira!",
 		Features = {
-			"🏢 3 Bloklu Eş Zamanlı İnşaat",
-			"🏗️🏗️ Çift Kule Vinç Sistemi",
-			"📈 x3.5 Kat Yüksek Kira Geliri",
-		}
-	},
-	MegaComplex = {
-		Id = "MegaComplex",
-		Name = "Mega Ticaret & Plaza Kompleksi",
-		Icon = "🌆",
-		Badge = "EN YÜKSEK PRESTİJ",
-		Difficulty = "⭐⭐⭐⭐ Mega",
-		CostMultiplier = 3.0,
-		RewardMultiplier = 7.2,
-		MaxStages = 5,
-		Description = "İkiz cam gökdelenler, modern pavyonlar ve çevre peyzajı içeren fütüristik mega proje. Uzun soluklu devasa kâr marjı!",
-		Features = {
-			"🏙️ İkiz İkiz Gökdelenler & AVM Plazası",
-			"✨ 4'lü Kule Vinç Ağı ve İşçi Ordusu",
-			"💎 Ekstra Kristal ve Prestij Ödülü",
+			"🏘️ 2 ila 6 Eşzamanlı Bina Yerleşimi",
+			"📈 x3.2 Kat Şehir Nüfusu & Kira",
+			"⚠️ x2.8 Kat Daha Yüksek İnşaat Maliyeti",
 		}
 	},
 }
 
 ProjectTypeConfig.ORDER = {
 	"SingleBuilding",
-	"IslandProject",
-	"HousingEstate",
-	"MegaComplex",
+	"MultiBuilding",
 }
 
 function ProjectTypeConfig.GetType(id: string)
-	return ProjectTypeConfig.TYPES[id] or ProjectTypeConfig.TYPES.IslandProject
+	return ProjectTypeConfig.TYPES[id] or ProjectTypeConfig.TYPES.SingleBuilding
 end
 
 return ProjectTypeConfig

@@ -57,7 +57,8 @@ local function createDefaultProfile()
 		Plots = {
 			[1] = {
 				BuildingLevel = 1,
-				ProjectType = "IslandProject",
+				ProjectType = "SingleBuilding",
+				DeliveredMaterials = 0,
 				IsCompleted = false,
 			},
 		},

@@ -49,6 +49,7 @@ if RunService:IsServer() then
 	Network.UpgradeVehicleEvent = ensureRemote("UpgradeVehicleEvent", false)
 	Network.OpenGarageEvent = ensureRemote("OpenGarageEvent", false)
 	Network.SyncVehicleUpgradesEvent = ensureRemote("SyncVehicleUpgradesEvent", false)
+	Network.SyncGarageEvent = ensureRemote("SyncGarageEvent", false)
 
 	-- Cities: Skylines Şehir Sistemi Remoteleri
 	Network.SetZoneFunction = ensureRemote("SetZoneFunction", true)
@@ -81,6 +82,7 @@ else
 	Network.UpgradeVehicleEvent = remoteFolder:WaitForChild("UpgradeVehicleEvent") :: RemoteEvent
 	Network.OpenGarageEvent = remoteFolder:WaitForChild("OpenGarageEvent") :: RemoteEvent
 	Network.SyncVehicleUpgradesEvent = remoteFolder:WaitForChild("SyncVehicleUpgradesEvent") :: RemoteEvent
+	Network.SyncGarageEvent = remoteFolder:WaitForChild("SyncGarageEvent") :: RemoteEvent
 
 	-- Cities: Skylines Şehir Sistemi Remoteleri
 	Network.SetZoneFunction = remoteFolder:WaitForChild("SetZoneFunction") :: RemoteFunction

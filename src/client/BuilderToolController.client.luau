@@ -8,12 +8,14 @@ local SoundService = game:GetService("SoundService")
 local Network = require(ReplicatedStorage.Shared.Network)
 local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local NumberFormat = require(ReplicatedStorage.Shared.NumberFormat)
+local ProjectTypeConfig = require(ReplicatedStorage.Shared.ProjectTypeConfig)
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
 
 local debounce = false
 local currentBuildingLevel = 1
 local currentPlotIndex = 1
+local currentProjectType = "SingleBuilding"
 local plotLevels = {} -- [plotIndex] = level
 local isUpgradingAnimating = false
 
@@ -290,7 +292,8 @@ local function createBuilderHUD()
 		local currentCash = cashValue and cashValue.Value or 0
 
 		if nextData then
-			local cost = nextData.Cost
+			local pTypeData = ProjectTypeConfig.GetType(currentProjectType)
+			local cost = math.floor(nextData.Cost * (pTypeData.CostMultiplier or 1.0))
 			if currentCash >= cost then
 				-- Yükseltmeye Hazır: Canlı Yeşil Kart, Net Siyah Yazı
 				upgradeBtn.Text = string.format("🔨 YÜKSELT: %s (%s)\n[TIKLA & GELİŞTİR!]", nextData.Name, NumberFormat.FormatCash(cost))
@@ -375,8 +378,10 @@ local function createBuilderHUD()
 			local nextLevel = currentBuildingLevel + 1
 			local nextData = GameConfig.BUILDINGS[nextLevel]
 			if nextData then
-				if currentCash < nextData.Cost then
-					triggerInsufficientCashFeedback(nextData.Cost, currentCash)
+				local pTypeData = ProjectTypeConfig.GetType(currentProjectType)
+				local cost = math.floor(nextData.Cost * (pTypeData.CostMultiplier or 1.0))
+				if currentCash < cost then
+					triggerInsufficientCashFeedback(cost, currentCash)
 					return
 				end
 				playSfx("rbxasset://sounds/electronicpingshort.wav", 0.5, 1.4)
@@ -386,9 +391,12 @@ local function createBuilderHUD()
 	end)
 
 	-- Sunucudan Gelen Yükseltme Bildirimi
-	Network.SyncBuildingEvent.OnClientEvent:Connect(function(newLevel, plotIdx)
+	Network.SyncBuildingEvent.OnClientEvent:Connect(function(newLevel, plotIdx, projectType)
 		plotIdx = tonumber(plotIdx) or currentPlotIndex
 		plotLevels[plotIdx] = newLevel
+		if projectType then
+			currentProjectType = projectType
+		end
 
 		local bData = GameConfig.BUILDINGS[newLevel]
 		local bName = bData and bData.Name or "İnşaat"
@@ -399,10 +407,13 @@ local function createBuilderHUD()
 
 	-- İlk Açılışta Aktif Şantiye Seviyesini Sunucudan Al
 	task.spawn(function()
-		local success, level, plotIdx = pcall(function()
+		local success, level, plotIdx, projectType = pcall(function()
 			return Network.GetBuildingStatusFunction:InvokeServer()
 		end)
 		if success and level then
+			if projectType then
+				currentProjectType = projectType
+			end
 			updateButtonDisplay(level, plotIdx)
 		end
 	end)

@@ -31,6 +31,7 @@ export type PlotData = {
 	UnlockGui: BillboardGui,
 	CargoPad: Part,
 	Origin: Vector3,
+	ProjectType: string?,
 }
 
 -- Genel Parça Oluşturucu Yardımcı (Kutu / Prizma)

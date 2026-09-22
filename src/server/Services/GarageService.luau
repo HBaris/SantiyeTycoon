@@ -226,6 +226,13 @@ end
 -- ============================================================================
 -- 1b. TAŞIT KAPASİTE VE KARGO TESLİMAT FONKSİYONLARI
 -- ============================================================================
+local function syncGarageState(player: Player)
+	local profile = DataService.GetProfile(player)
+	if profile and profile.Garage then
+		Network.SyncGarageEvent:FireClient(player, profile.Garage.Owned or { Scooter = true }, profile.Garage.Active or "Scooter")
+	end
+end
+
 function GarageService.GetEffectiveCargoCapacity(player: Player, vehicleType: string): number
 	local vData = GameConfig.VEHICLES[vehicleType] or GameConfig.VEHICLES.Scooter
 	local cargoLvl = DataService.GetVehicleUpgrade(player, vehicleType, "Cargo")
@@ -247,6 +254,20 @@ function GarageService.DeliverCargo(player: Player, plotIndex: number)
 		-- Oyuncuya kargo teslim bonusu nakit ver
 		local bonusCash = cargoAmount * 8
 		DataService.AddCash(player, bonusCash)
+
+		-- Şantiyeye malzeme stoğu ekle (İnşaat maliyetini %35'e kadar düşürür)
+		local profile = DataService.GetProfile(player)
+		if profile and profile.Plots and profile.Plots[plotIndex] then
+			profile.Plots[plotIndex].DeliveredMaterials = (profile.Plots[plotIndex].DeliveredMaterials or 0) + cargoAmount
+		end
+
+		-- Tabela ve yükseltme pad'ini yeni malzeme indirimine göre güncelle
+		pcall(function()
+			local IslandManager = require(script.Parent.IslandManager)
+			if IslandManager and IslandManager.UpdateUpgradePadText then
+				IslandManager.UpdateUpgradePadText(player, plotIndex)
+			end
+		end)
 
 		-- Tüm istemcilere görsel kargo turbosunu senkronize et
 		Network.SyncTurboStatusEvent:FireAllClients(player, true, GameConfig.CARGO_BOOST_DURATION)
@@ -275,12 +296,15 @@ function GarageService.Initialize()
 			-- Zaten sahip, aktif taşıt yap ve spawnla
 			profile.Garage.Active = vehicleId
 			GarageService.SpawnVehicle(player, vehicleId)
+			syncGarageState(player)
 			return
 		end
 
 		if DataService.SpendCash(player, vData.Cost) then
 			DataService.AddVehicle(player, vehicleId)
+			profile.Garage.Active = vehicleId
 			GarageService.SpawnVehicle(player, vehicleId)
+			syncGarageState(player)
 			print(string.format("[GarageService] %s yeni bir taşıt satın aldı: %s", player.Name, vData.Name))
 		end
 	end)
@@ -294,6 +318,7 @@ function GarageService.Initialize()
 		if DataService.OwnsVehicle(player, vehicleId) then
 			profile.Garage.Active = vehicleId
 			GarageService.SpawnVehicle(player, vehicleId)
+			syncGarageState(player)
 		end
 	end)
 
@@ -373,15 +398,22 @@ function GarageService.Initialize()
 	end)
 
 	-- Oyuncu katıldığında varsayılan taşıtını hazırla ve yükseltmelerini senkronize et
-	Players.PlayerAdded:Connect(function(player)
+	local function onPlayerJoined(player: Player)
 		task.delay(1.5, function()
+			if not player.Parent then return end
 			GarageService.SpawnVehicle(player, "Scooter")
+			syncGarageState(player)
 			for _, vId in ipairs({ "Scooter", "Motorcycle", "Car" }) do
 				local allUpgrades = DataService.GetAllVehicleUpgrades(player, vId)
 				Network.SyncVehicleUpgradesEvent:FireClient(player, vId, allUpgrades)
 			end
 		end)
-	end)
+	end
+
+	Players.PlayerAdded:Connect(onPlayerJoined)
+	for _, p in ipairs(Players:GetPlayers()) do
+		task.spawn(onPlayerJoined, p)
+	end
 
 	Players.PlayerRemoving:Connect(function(player)
 		if playerVehicles[player] then
@@ -480,6 +512,7 @@ function GarageService.EnsureGarageEnvironment()
 	tunePrompt.Parent = tuningPad
 
 	tunePrompt.Triggered:Connect(function(player)
+		syncGarageState(player)
 		Network.OpenGarageEvent:FireClient(player)
 	end)
 

@@ -14,6 +14,7 @@ local NumberFormat = require(ReplicatedStorage.Shared.NumberFormat)
 local selectedVehicleId = "Scooter"
 local currentCash = 0
 local currentCrystals = 25
+local ownedVehicles = { Scooter = true }
 local vehicleUpgrades = {
 	Scooter = { Speed = 0, Torque = 0, Cargo = 0 },
 	Motorcycle = { Speed = 0, Torque = 0, Cargo = 0 },
@@ -383,7 +384,19 @@ function GarageUI.Refresh()
 	local vData = GameConfig.VEHICLES[selectedVehicleId] or GameConfig.VEHICLES.Scooter
 	summaryIcon.Text = vData.Icon
 	summaryTitle.Text = vData.Name
-	summaryDesc.Text = vData.Desc
+
+	local isOwned = (ownedVehicles[selectedVehicleId] == true)
+	if isOwned then
+		spawnActionBtn.Text = "🚗 TAŞITA BİN"
+		spawnActionBtn.BackgroundColor3 = Color3.fromRGB(46, 175, 80)
+		spawnActionBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+		summaryDesc.Text = vData.Desc .. " (Mülkünüzde)"
+	else
+		spawnActionBtn.Text = string.format("🛒 SATIN AL (%s)", NumberFormat.FormatCash(vData.Cost))
+		spawnActionBtn.BackgroundColor3 = Color3.fromRGB(240, 160, 20)
+		spawnActionBtn.TextColor3 = Color3.fromRGB(20, 20, 20)
+		summaryDesc.Text = vData.Desc .. string.format(" - Fiyat: %s", NumberFormat.FormatCash(vData.Cost))
+	end
 
 	local currentVUpgrades = vehicleUpgrades[selectedVehicleId] or { Speed = 0, Torque = 0, Cargo = 0 }
 
@@ -429,8 +442,27 @@ function GarageUI.Refresh()
 end
 
 spawnActionBtn.MouseButton1Click:Connect(function()
-	Network.SpawnVehicleEvent:FireServer(selectedVehicleId)
-	modal.Visible = false
+	local isOwned = (ownedVehicles[selectedVehicleId] == true)
+	if isOwned then
+		playSfx("rbxasset://sounds/electronicpingshort.wav", 0.4, 1.3)
+		Network.SpawnVehicleEvent:FireServer(selectedVehicleId)
+		modal.Visible = false
+	else
+		local vData = GameConfig.VEHICLES[selectedVehicleId]
+		if vData and currentCash >= vData.Cost then
+			playSfx("rbxasset://sounds/electronicpingshort.wav", 0.5, 1.5)
+			Network.BuyVehicleEvent:FireServer(selectedVehicleId)
+		else
+			playSfx("rbxasset://sounds/electronicpingshort.wav", 0.5, 0.7)
+			spawnActionBtn.Text = "❌ YETERSİZ KASA!"
+			spawnActionBtn.BackgroundColor3 = Color3.fromRGB(255, 120, 120)
+			task.delay(1.2, function()
+				if modal.Visible then
+					GarageUI.Refresh()
+				end
+			end)
+		end
+	end
 end)
 
 closeBtn.MouseButton1Click:Connect(function()
@@ -455,6 +487,18 @@ UserInputService.InputBegan:Connect(function(input, processed)
 end)
 
 -- Ağ Senkronizasyon Olayları
+Network.SyncGarageEvent.OnClientEvent:Connect(function(ownedList: any, activeId: string?)
+	if type(ownedList) == "table" then
+		ownedVehicles = ownedList
+	end
+	if activeId and GameConfig.VEHICLES[activeId] then
+		selectedVehicleId = activeId
+	end
+	if modal.Visible then
+		GarageUI.Refresh()
+	end
+end)
+
 Network.SyncVehicleUpgradesEvent.OnClientEvent:Connect(function(vId: string, upgrades: any)
 	if vId and type(upgrades) == "table" then
 		vehicleUpgrades[vId] = upgrades

@@ -64,7 +64,7 @@ local function calculateTotalProductionRate(player: Player, isTurbo: boolean): (
 
 	for plotIdx, plotData in pairs(profile.Plots or {}) do
 		local bData = GameConfig.BUILDINGS[plotData.BuildingLevel] or GameConfig.BUILDINGS[1]
-		local pTypeData = ProjectTypeConfig.GetType(plotData.ProjectType or "IslandProject")
+		local pTypeData = ProjectTypeConfig.GetType(plotData.ProjectType or "SingleBuilding")
 		local pRewardMultiplier = pTypeData.RewardMultiplier or 1.0
 
 		local plotSpeed = (delivery * bData.Efficiency * pRewardMultiplier)
@@ -128,7 +128,7 @@ function ConstructionService.Initialize()
 
 		-- Oyuncunun Kayıtlı Tüm Şantiye Adalarını Anında Oluştur
 		for plotIndex, pData in pairs(profile.Plots) do
-			local plot = IslandManager.CreatePlot(player, slot, tonumber(plotIndex) or 1, pData.BuildingLevel)
+			local plot = IslandManager.CreatePlot(player, slot, tonumber(plotIndex) or 1, pData.BuildingLevel, pData.ProjectType or "SingleBuilding")
 			ConstructionService.HookPlotPads(player, plot)
 		end
 
@@ -190,7 +190,8 @@ function ConstructionService.Initialize()
 		local activePlotIdx = profile.ActivePlotIndex or 1
 		local activePlotData = profile.Plots[activePlotIdx] or profile.Plots[1]
 		local activeLevel = activePlotData and activePlotData.BuildingLevel or 1
-		Network.SyncBuildingEvent:FireClient(player, activeLevel, activePlotIdx)
+		local activeType = activePlotData and activePlotData.ProjectType or "SingleBuilding"
+		Network.SyncBuildingEvent:FireClient(player, activeLevel, activePlotIdx, activeType)
 	end
 
 	-- 1. Oyuncu Katıldığında (PlayerAdded) ve Mevcut Oyuncular İçin
@@ -239,11 +240,12 @@ function ConstructionService.Initialize()
 	-- 3d. İstemci Açıldığında Aktif Şantiye ve Seviyeyi Sorgulama Fonksiyonu
 	Network.GetBuildingStatusFunction.OnServerInvoke = function(player)
 		local profile = DataService.GetProfile(player)
-		if not profile then return 1, 1 end
+		if not profile then return 1, 1, "SingleBuilding" end
 		local activePlotIdx = profile.ActivePlotIndex or 1
 		local activePlotData = profile.Plots[activePlotIdx] or profile.Plots[1]
 		local activeLevel = activePlotData and activePlotData.BuildingLevel or 1
-		return activeLevel, activePlotIdx
+		local activeType = activePlotData and activePlotData.ProjectType or "SingleBuilding"
+		return activeLevel, activePlotIdx, activeType
 	end
 
 	-- 4. Sürekli Gelir Döngüsü (Her 1 saniyede bir şantiye ilerlemesi)
@@ -371,11 +373,23 @@ function ConstructionService.HandleUpgradeBuilding(player: Player, plotIndex: nu
 		return
 	end
 
-	local multipliers = UpgradeService.GetMultipliers(player)
-	local discountedCost = math.floor(nextData.Cost * multipliers.CostDiscountMultiplier)
+	local pType = profile.Plots[plotIndex].ProjectType or "SingleBuilding"
+	local pTypeData = ProjectTypeConfig.GetType(pType)
+	local costMultiplier = pTypeData.CostMultiplier or 1.0
 
-	if DataService.SpendCash(player, discountedCost) then
+	local multipliers = UpgradeService.GetMultipliers(player)
+	local baseCost = math.floor(nextData.Cost * costMultiplier * multipliers.CostDiscountMultiplier)
+
+	-- Malzeme teslimat indirimi (Taşıtla kargo taşınmışsa, %35'e kadar indirim: her malzeme = 10 İP)
+	local deliveredMats = profile.Plots[plotIndex].DeliveredMaterials or 0
+	local maxDiscount = math.floor(baseCost * 0.35)
+	local matDiscount = math.min(deliveredMats * 10, maxDiscount)
+	local finalCost = math.max(10, baseCost - matDiscount)
+
+	if DataService.SpendCash(player, finalCost) then
 		profile.Plots[plotIndex].BuildingLevel = nextLevel
+		profile.Plots[plotIndex].DeliveredMaterials = 0 -- Malzemeler inşaatta kullanıldı
+
 		IslandManager.UpdateBuildingVisuals(player, plotIndex, nextLevel)
 
 		local leaderstats = player:FindFirstChild("leaderstats")
@@ -387,10 +401,10 @@ function ConstructionService.HandleUpgradeBuilding(player: Player, plotIndex: nu
 			if speedVal then speedVal.Value = newSpeed end
 		end
 
-		print(string.format("[ConstructionService] %s Proje #%d için inşaat seviyesini %d (%s) yaptı! Ödenen: %s (İndirimli)", player.Name, plotIndex, nextLevel, nextData.Name, NumberFormat.FormatCash(discountedCost)))
+		print(string.format("[ConstructionService] %s Proje #%d için inşaat seviyesini %d (%s) yaptı! Tür: %s, Ödenen: %s (İndirim: %s)", player.Name, plotIndex, nextLevel, nextData.Name, pType, NumberFormat.FormatCash(finalCost), NumberFormat.FormatCash(matDiscount)))
 
 		-- İstemci ekran arayüzünü anında güncelle
-		Network.SyncBuildingEvent:FireClient(player, nextLevel, plotIndex)
+		Network.SyncBuildingEvent:FireClient(player, nextLevel, plotIndex, pType)
 
 		-- Seviye 5 (Gökdelen) tamamlandığında 1 defaya mahsus yeni proje seçim modalını aç
 		if nextLevel >= 5 then
@@ -420,12 +434,13 @@ function ConstructionService.HandleUnlockNewPlot(player: Player, projectTypeId: 
 	local baseCost = GameConfig.GetPlotCost(newPlotIndex)
 	local finalCost = math.floor(baseCost * multipliers.CostDiscountMultiplier)
 
-	projectTypeId = projectTypeId or "IslandProject"
+	projectTypeId = projectTypeId or "SingleBuilding"
 
 	if DataService.SpendCash(player, finalCost) then
 		profile.Plots[newPlotIndex] = {
 			BuildingLevel = 1,
 			ProjectType = projectTypeId,
+			DeliveredMaterials = 0,
 			IsCompleted = false,
 		}
 
@@ -438,7 +453,7 @@ function ConstructionService.HandleUnlockNewPlot(player: Player, projectTypeId: 
 		print(string.format("[ConstructionService] %s yeni bir şantiye açtı (Proje #%d, Tür: %s, Maliyet: %s)! Oyuncu taşıtıyla gidebilir.", player.Name, newPlotIndex, projectTypeId, NumberFormat.FormatCash(finalCost)))
 
 		-- İstemci ekran arayüzünü yeni şantiye için senkronize et (Seviye 1, yeni arsa)
-		Network.SyncBuildingEvent:FireClient(player, 1, newPlotIndex)
+		Network.SyncBuildingEvent:FireClient(player, 1, newPlotIndex, projectTypeId)
 	end
 end
 
