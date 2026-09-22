@@ -12,11 +12,11 @@ local BuildingBuilder = {}
 
 -- Her seviye için tekli bina hedef genişliği (stud) ve Yaw dönüş açısı
 local SINGLE_CONFIGS: { [number]: { targetWidth: number, yaw: number } } = {
-	[1] = { targetWidth = 38, yaw = 0 },   -- Ahşap Kütük Kulübe
-	[2] = { targetWidth = 50, yaw = 90 },  -- Tuğla Malikâne
-	[3] = { targetWidth = 54, yaw = 90 },  -- Lüks Villa
-	[4] = { targetWidth = 50, yaw = 0 },   -- Rezidans Apartman
-	[5] = { targetWidth = 54, yaw = 0 },   -- Prestij Gökdelen
+	[1] = { targetWidth = 38, yaw = 0 },    -- Ahşap Kütük Kulübe (Öne bakıyor)
+	[2] = { targetWidth = 48, yaw = 180 },  -- Tuğla Malikâne (Ön kapı ve garaj öne bakıyor)
+	[3] = { targetWidth = 52, yaw = 270 },  -- Lüks Villa (Giriş ve merdivenler öne bakıyor)
+	[4] = { targetWidth = 50, yaw = 0 },    -- Rezidans Apartman (Ana cephe öne bakıyor)
+	[5] = { targetWidth = 52, yaw = 0 },    -- Prestij Gökdelen
 }
 
 -- Çoklu bina projesinde seviyelere göre 2 ila 6 binanın yerleşim koordinatları ve boyutları
@@ -33,7 +33,7 @@ local MULTI_CONFIGS: { [number]: { count: number, targetWidth: number, yaw: numb
 	[2] = {
 		count = 3,
 		targetWidth = 22,
-		yaw = 90,
+		yaw = 180,
 		offsets = {
 			Vector3.new(-15, 0, -16),
 			Vector3.new(15, 0, -16),
@@ -43,7 +43,7 @@ local MULTI_CONFIGS: { [number]: { count: number, targetWidth: number, yaw: numb
 	[3] = {
 		count = 4,
 		targetWidth = 22,
-		yaw = 90,
+		yaw = 270,
 		offsets = {
 			Vector3.new(-14, 0, -18),
 			Vector3.new(14, 0, -18),
@@ -112,37 +112,65 @@ local function createSingleBuilding(
 			end
 		end
 
-		-- AABB yatay genişlik hesabı
+		-- 1. Gerçek 3D Dönüş İzdüşümlü Eksen Hizalı Sınır Kutusu (AABB) Hesabı
+		-- Dönük parçaların (örneğin Y ekseni 90 derece döndürülmüş kiriş/mesh'ler) dikey boyutunu doğru hesaplar
 		local minX, maxX = math.huge, -math.huge
+		local minY, maxY = math.huge, -math.huge
 		local minZ, maxZ = math.huge, -math.huge
+
 		for _, p in ipairs(buildingModel:GetDescendants()) do
 			if p:IsA("BasePart") then
-				minX = math.min(minX, p.Position.X - p.Size.X / 2)
-				maxX = math.max(maxX, p.Position.X + p.Size.X / 2)
-				minZ = math.min(minZ, p.Position.Z - p.Size.Z / 2)
-				maxZ = math.max(maxZ, p.Position.Z + p.Size.Z / 2)
+				local pcf = p.CFrame
+				local psz = p.Size
+				local extX = 0.5 * (math.abs(pcf.XVector.X) * psz.X + math.abs(pcf.YVector.X) * psz.Y + math.abs(pcf.ZVector.X) * psz.Z)
+				local extY = 0.5 * (math.abs(pcf.XVector.Y) * psz.X + math.abs(pcf.YVector.Y) * psz.Y + math.abs(pcf.ZVector.Y) * psz.Z)
+				local extZ = 0.5 * (math.abs(pcf.XVector.Z) * psz.X + math.abs(pcf.YVector.Z) * psz.Y + math.abs(pcf.ZVector.Z) * psz.Z)
+
+				minX = math.min(minX, pcf.Position.X - extX)
+				maxX = math.max(maxX, pcf.Position.X + extX)
+				minY = math.min(minY, pcf.Position.Y - extY)
+				maxY = math.max(maxY, pcf.Position.Y + extY)
+				minZ = math.min(minZ, pcf.Position.Z - extZ)
+				maxZ = math.max(maxZ, pcf.Position.Z + extZ)
 			end
 		end
 
-		local origWidth = math.max(maxX - minX, maxZ - minZ)
+		local aabbCenter = Vector3.new((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2)
+		local aabbSize = Vector3.new(maxX - minX, maxY - minY, maxZ - minZ)
+
+		-- 2. Temiz, dik ve tam merkeze oturtulmuş WorldPivot ataması
+		-- Bu adım, hazır varlıklardan gelen 23.5° gibi çarpık/eğri pivot açılarını anında temizler
+		buildingModel.WorldPivot = CFrame.new(aabbCenter)
+
+		-- 3. Hedef Genişliğe Göre Ölçeklendirme
+		local origWidth = math.max(aabbSize.X, aabbSize.Z)
+		local scale = 1
 		if origWidth > 0 then
-			local scale = targetWidth / origWidth
+			scale = targetWidth / origWidth
 			buildingModel:ScaleTo(scale)
 		end
 
+		-- 4. Hedef Konuma Yerleştirme (Zemine kusursuz oturtma ve temiz Yaw rotasyonu)
+		local scaledHalfHeight = (aabbSize.Y * scale) / 2
+		local targetPivotY = groundY + scaledHalfHeight
 		local yawRad = math.rad(yawDegrees)
-		buildingModel:PivotTo(CFrame.new(targetPos.X, 0, targetPos.Z) * CFrame.Angles(0, yawRad, 0))
+		buildingModel:PivotTo(CFrame.new(targetPos.X, targetPivotY, targetPos.Z) * CFrame.Angles(0, yawRad, 0))
 
-		-- Mutlak Zemin Hizalama (MinY)
-		local minY = math.huge
+		-- 5. Mikron Düzeyinde Mutlak Zemin Hizalaması (Y ekseni mikron düzeltmesi)
+		local actualMinY = math.huge
 		for _, p in ipairs(buildingModel:GetDescendants()) do
 			if p:IsA("BasePart") then
-				minY = math.min(minY, p.Position.Y - p.Size.Y / 2)
+				local pcf = p.CFrame
+				local psz = p.Size
+				local extY = 0.5 * (math.abs(pcf.XVector.Y) * psz.X + math.abs(pcf.YVector.Y) * psz.Y + math.abs(pcf.ZVector.Y) * psz.Z)
+				actualMinY = math.min(actualMinY, pcf.Position.Y - extY)
 			end
 		end
 
-		local shiftY = groundY - minY
-		buildingModel:PivotTo(buildingModel:GetPivot() + Vector3.new(0, shiftY, 0))
+		local diffY = groundY - actualMinY
+		if math.abs(diffY) > 0.001 then
+			buildingModel:PivotTo(buildingModel:GetPivot() + Vector3.new(0, diffY, 0))
+		end
 
 		if not buildingModel.PrimaryPart then
 			buildingModel.PrimaryPart = buildingModel:FindFirstChildWhichIsA("BasePart", true)
