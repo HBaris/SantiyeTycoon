@@ -20,11 +20,14 @@ local vehicleUpgrades = {
 	Car = { Speed = 0, Torque = 0, Cargo = 0 },
 }
 
+local GarageUI = {}
+
 local function playSfx(soundPath: string, volume: number?, pitch: number?)
+	if not soundPath or soundPath == "" then return end
 	pcall(function()
 		local sound = Instance.new("Sound")
 		sound.SoundId = soundPath
-		sound.Volume = volume or 0.4
+		sound.Volume = volume or 0.3
 		sound.PlaybackSpeed = pitch or 1.0
 		sound.Parent = SoundService
 		sound:Play()
@@ -168,7 +171,7 @@ for i, vId in ipairs(vOrder) do
 
 	btn.MouseButton1Click:Connect(function()
 		selectedVehicleId = vId
-		playSfx("rbxassetid://9069634907", 0.3)
+
 		for otherId, otherBtn in pairs(vehicleTabButtons) do
 			local isSelected = (otherId == selectedVehicleId)
 			otherBtn.BackgroundColor3 = isSelected and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(230, 235, 242)
@@ -362,7 +365,6 @@ for i, uKey in ipairs(upgradeKeys) do
 
 	upgradeBtn.MouseButton1Click:Connect(function()
 		Network.UpgradeVehicleEvent:FireServer(selectedVehicleId, uKey)
-		playSfx("rbxassetid://9069634907", 0.4)
 	end)
 
 	upgradeCards[uKey] = {
@@ -377,8 +379,6 @@ end
 -- ============================================================================
 -- ARAYÜZ YENİLEME & SENKRONİZASYON
 -- ============================================================================
-local GarageUI = {}
-
 function GarageUI.Refresh()
 	local vData = GameConfig.VEHICLES[selectedVehicleId] or GameConfig.VEHICLES.Scooter
 	summaryIcon.Text = vData.Icon
@@ -431,19 +431,16 @@ end
 spawnActionBtn.MouseButton1Click:Connect(function()
 	Network.SpawnVehicleEvent:FireServer(selectedVehicleId)
 	modal.Visible = false
-	playSfx("rbxassetid://9069634907", 0.4)
 end)
 
 closeBtn.MouseButton1Click:Connect(function()
 	modal.Visible = false
-	playSfx("rbxassetid://9069634907", 0.3)
 end)
 
 garageToggleBtn.MouseButton1Click:Connect(function()
 	modal.Visible = not modal.Visible
 	if modal.Visible then
 		GarageUI.Refresh()
-		playSfx("rbxassetid://9069634907", 0.3)
 	end
 end)
 
@@ -478,7 +475,6 @@ end)
 Network.OpenGarageEvent.OnClientEvent:Connect(function()
 	modal.Visible = true
 	GarageUI.Refresh()
-	playSfx("rbxassetid://9069634907", 0.4)
 end)
 
 GarageUI.Refresh()

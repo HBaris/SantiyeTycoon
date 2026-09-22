@@ -58,6 +58,7 @@ local function calculateTotalProductionRate(player: Player, isTurbo: boolean): (
 
 	local multipliers = UpgradeService.GetMultipliers(player)
 	local totalSpeed = 0
+	local totalCommercialRent = 0
 	local delivery = profile.MaterialDelivery or GameConfig.BASE_MATERIAL_FLOW
 
 	for plotIdx, plotData in pairs(profile.Plots or {}) do
@@ -75,7 +76,8 @@ local function calculateTotalProductionRate(player: Player, isTurbo: boolean): (
 		totalSpeed += plotSpeed
 
 		-- Şehirleşme / Dükkan Ticari Kira Geliri
-		totalCommercialRent += IslandManager.GetCommercialRent(plotData.BuildingLevel)
+		local rent = IslandManager.GetCommercialRent(plotData.BuildingLevel) or 0
+		totalCommercialRent += rent
 	end
 
 	local turboMultiplier = isTurbo and GameConfig.BOOST_MULTIPLIER or 1.0

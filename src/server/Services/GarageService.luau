@@ -174,6 +174,29 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 
 	model.PrimaryPart = rootPart
 
+	-- 1b. Fiziksel Sürüş ve Jiroskopik Denge Donatıları (Devrilmeyi önler ve düzgün sürüş sağlar)
+	local driveAtt = Instance.new("Attachment")
+	driveAtt.Name = "DriveAttachment"
+	driveAtt.Parent = rootPart
+
+	local stabilizer = Instance.new("AlignOrientation")
+	stabilizer.Name = "VehicleStabilizer"
+	stabilizer.Mode = Enum.OrientationAlignmentMode.OneAttachment
+	stabilizer.Attachment0 = driveAtt
+	stabilizer.MaxTorque = 5000000
+	stabilizer.Responsiveness = 40
+	stabilizer.CFrame = spawnCFrame
+	stabilizer.Parent = rootPart
+
+	local mover = Instance.new("LinearVelocity")
+	mover.Name = "VehicleMover"
+	mover.Attachment0 = driveAtt
+	mover.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	mover.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
+	mover.MaxForce = 0
+	mover.VectorVelocity = Vector3.zero
+	mover.Parent = rootPart
+
 	-- Binme ProximityPrompt'u
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Bin (Sür)"
@@ -189,6 +212,9 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
 		local seat = model:FindFirstChild("Seat") :: VehicleSeat
 		if humanoid and seat and not seat.Occupant then
+			pcall(function()
+				rootPart:SetNetworkOwner(promptPlayer)
+			end)
 			seat:Sit(humanoid)
 		end
 	end)

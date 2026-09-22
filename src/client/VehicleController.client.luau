@@ -70,6 +70,9 @@ local cbCorner = Instance.new("UICorner")
 cbCorner.CornerRadius = UDim.new(0, 8)
 cbCorner.Parent = cargoBadge
 
+local currentForwardSpeed = 0
+local currentYaw: number? = nil
+
 local function bindCharacter(char: Model)
 	local humanoid = char:WaitForChild("Humanoid", 10) :: Humanoid
 	if not humanoid then return end
@@ -77,9 +80,26 @@ local function bindCharacter(char: Model)
 	humanoid.Seated:Connect(function(isSeated, seatPart)
 		if isSeated and seatPart and seatPart:IsA("VehicleSeat") then
 			currentSeat = seatPart
+			local model = seatPart.Parent
+			local root = model and model.PrimaryPart or seatPart
+			currentYaw = root.Orientation.Y
+			currentForwardSpeed = 0
 			hudCard.Visible = true
 		else
+			if currentSeat then
+				local model = currentSeat.Parent
+				local root = model and model.PrimaryPart or currentSeat
+				if root then
+					local mover = root:FindFirstChild("VehicleMover") :: LinearVelocity
+					if mover then
+						mover.MaxForce = 0
+						mover.VectorVelocity = Vector3.zero
+					end
+				end
+			end
 			currentSeat = nil
+			currentForwardSpeed = 0
+			currentYaw = nil
 			hudCard.Visible = false
 		end
 	end)
@@ -90,7 +110,59 @@ if localPlayer.Character then
 end
 localPlayer.CharacterAdded:Connect(bindCharacter)
 
--- Her karede hız ve durum güncellemesi
+-- Fiziksel Sürüş ve Motor Döngüsü (Heartbeat)
+RunService.Heartbeat:Connect(function(dt)
+	if currentSeat and currentSeat.Occupant then
+		local model = currentSeat.Parent
+		local root = model and model.PrimaryPart or currentSeat
+		if root then
+			local mover = root:FindFirstChild("VehicleMover") :: LinearVelocity
+			local stabilizer = root:FindFirstChild("VehicleStabilizer") :: AlignOrientation
+
+			local throttle = currentSeat.ThrottleFloat or 0
+			local steer = currentSeat.SteerFloat or 0
+			local maxSpeed = currentSeat.MaxSpeed or 28
+			local torque = currentSeat.Torque or 20
+			local turnSpeed = currentSeat.TurnSpeed or 2.5
+			local accelRate = math.max(35, torque * 2.5)
+
+			if throttle ~= 0 then
+				currentForwardSpeed = math.clamp(currentForwardSpeed + (throttle * accelRate * dt), -maxSpeed * 0.45, maxSpeed)
+			else
+				-- Yavaşlama ve sürtünme
+				if math.abs(currentForwardSpeed) > 1 then
+					currentForwardSpeed = currentForwardSpeed - math.sign(currentForwardSpeed) * (accelRate * 1.6 * dt)
+				else
+					currentForwardSpeed = 0
+				end
+			end
+
+			if not currentYaw then
+				currentYaw = root.Orientation.Y
+			end
+
+			if math.abs(currentForwardSpeed) > 0.4 or throttle ~= 0 then
+				local reverseFactor = (currentForwardSpeed < -0.1) and -1 or 1
+				currentYaw = currentYaw - (steer * turnSpeed * 35 * reverseFactor * dt)
+			end
+
+			if stabilizer then
+				stabilizer.CFrame = CFrame.Angles(0, math.rad(currentYaw), 0)
+			end
+
+			if mover then
+				mover.MaxForce = 300000
+				-- Negatif Z yönü Attachment0'a göre düz ileri yöndür
+				mover.VectorVelocity = Vector3.new(0, 0, -currentForwardSpeed)
+			end
+		end
+	else
+		currentForwardSpeed = 0
+		currentYaw = nil
+	end
+end)
+
+-- Her karede HUD hız ve durum güncellemesi
 RunService.RenderStepped:Connect(function()
 	if currentSeat and hudCard.Visible then
 		local velocity = currentSeat.AssemblyLinearVelocity
