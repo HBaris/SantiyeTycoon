@@ -101,9 +101,9 @@ function IslandManager.CreatePlot(
 	ramp.CanCollide = true
 	ramp.Parent = plotFolder
 
-	-- Giriş Şirket Tabelası
-	local signPost = createPart(plotFolder, "SignPost", Vector3.new(1, 8, 1), CFrame.new(plotOrigin + Vector3.new(12, 5.5, 32)), Color3.fromRGB(80, 85, 90), Enum.Material.Metal, true, true)
-	local signBoard = createPart(plotFolder, "SignBoard", Vector3.new(12, 4.5, 0.6), CFrame.new(plotOrigin + Vector3.new(12, 8.5, 32)), Color3.fromRGB(255, 255, 255), Enum.Material.SmoothPlastic, true, true)
+	-- Giriş Şirket Tabelası (Parsel dışı: Yol ve kaldırım kenarında, parsel zeminini işgal etmez)
+	local signPost = createPart(plotFolder, "SignPost", Vector3.new(1, 8, 1), CFrame.new(plotOrigin + Vector3.new(14, 5.5, 46)), Color3.fromRGB(80, 85, 90), Enum.Material.Metal, true, true)
+	local signBoard = createPart(plotFolder, "SignBoard", Vector3.new(12, 4.5, 0.6), CFrame.new(plotOrigin + Vector3.new(14, 8.5, 46)), Color3.fromRGB(255, 255, 255), Enum.Material.SmoothPlastic, true, true)
 	local signGui = Instance.new("SurfaceGui")
 	signGui.Face = Enum.NormalId.Front
 	signGui.Parent = signBoard
@@ -116,12 +116,12 @@ function IslandManager.CreatePlot(
 	signText.Font = Enum.Font.FredokaOne
 	signText.Parent = signGui
 
-	-- Spawn Noktası (Sadece 1. Proje parselinde)
+	-- Spawn Noktası (Parsel dışındaki kaldırım alanında)
 	if plotIndex == 1 then
 		local spawnLocation = Instance.new("SpawnLocation")
 		spawnLocation.Name = "PlotSpawn"
 		spawnLocation.Size = Vector3.new(8, 0.6, 8)
-		spawnLocation.CFrame = CFrame.lookAt(plotOrigin + Vector3.new(0, 2.5, 34), Vector3.new(plotOrigin.X, 2.5, plotOrigin.Z))
+		spawnLocation.CFrame = CFrame.lookAt(plotOrigin + Vector3.new(-12, 2.5, 46), Vector3.new(plotOrigin.X, 2.5, plotOrigin.Z))
 		spawnLocation.Color = Color3.fromRGB(245, 190, 40)
 		spawnLocation.Material = Enum.Material.Concrete
 		spawnLocation.Anchored = true
@@ -149,8 +149,8 @@ function IslandManager.CreatePlot(
 	buildingClickDetector.MaxActivationDistance = 0
 	buildingClickDetector.Parent = hammerTarget
 
-	-- 4. Kargo Malzeme Pad'i (Giriş yolu kenarında, parseli engellemez)
-	local cargoPad = createPart(plotFolder, "CargoUnloadPad", Vector3.new(12, 0.1, 8), CFrame.new(plotOrigin + Vector3.new(24, 2.05, 34)), Color3.fromRGB(40, 180, 240), Enum.Material.SmoothPlastic, true, false)
+	-- 4. Kargo Malzeme Pad'i (Parsel dışı: Yol bağlantısı kenarında)
+	local cargoPad = createPart(plotFolder, "CargoUnloadPad", Vector3.new(12, 0.1, 8), CFrame.new(plotOrigin + Vector3.new(24, 2.05, 46)), Color3.fromRGB(40, 180, 240), Enum.Material.SmoothPlastic, true, false)
 	cargoPad:SetAttribute("IsCargoUnloadPad", true)
 	cargoPad:SetAttribute("PlotIndex", plotIndex)
 

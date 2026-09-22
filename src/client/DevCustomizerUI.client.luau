@@ -621,7 +621,7 @@ local catScroll = Instance.new("ScrollingFrame")
 catScroll.Size = UDim2.new(1, 0, 1, 0)
 catScroll.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
 catScroll.ScrollBarThickness = 5
-catScroll.CanvasSize = UDim2.new(0, 0, 0, 580)
+catScroll.CanvasSize = UDim2.new(0, 0, 0, 1300)
 catScroll.Parent = page3
 corner(catScroll, 8)
 
@@ -635,11 +635,18 @@ local catalogItems = {
 	{ "Buildings", "Level_5", "🏙️ Prestij Gökdelen (Lv.5)" }, { "Buildings", "Level_6", "🏢 Modern İş Merkezi (Lv.6)" },
 	{ "Buildings", "Level_7", "🚒 İtfaiye İstasyonu (Lv.7)" }, { "Buildings", "Level_8", "🏥 Sağlık Kliniği (Lv.8)" },
 	{ "Buildings", "Level_9", "🏙️ Finans İkiz Kule (Lv.9)" }, { "Buildings", "Level_10", "✨ Metropolis Gökdelen (Lv.10)" },
+	{ "Vehicles", "Scooter", "🛵 Şantiye Scooter'ı" }, { "Vehicles", "Pickup", "🛻 Şantiye Kamyoneti" },
+	{ "Vehicles", "Forklift", "🚜 Şantiye Forklifti" }, { "Vehicles", "DumpTruck", "🚛 Damperli Kamyon" },
+	{ "Cargo", "BrickPallet", "🧱 Tuğla Paleti" }, { "Cargo", "CementBags", "📦 Çimento Torbaları" },
+	{ "Cargo", "CargoCrate", "🧰 Kargo Sandığı" }, { "Cargo", "SteelRebar", "⛓️ İnşaat Demiri" },
+	{ "Cargo", "OilBarrels", "🛢️ Yakıt Varilleri" }, { "Cargo", "SiteContainer", "🏠 Şantiye Konteyneri" },
 	{ "Commercial", "Bakery", "🥖 Taş Fırın Dükkanı" }, { "Commercial", "Market", "🛒 Süpermarket" },
 	{ "Commercial", "Fountain", "⛲ Süs Havuzu" }, { "Commercial", "Barber", "💈 Kuaför Salonu" },
 	{ "Commercial", "Restaurant", "🍽️ Bistro Kafe" }, { "Trees", "PineTree", "🌲 Dağ Çamı Ağacı" },
-	{ "Trees", "GardenTree", "🌳 Bahçe Meşe Ağacı" }, { "Props", "StreetLamp", "🏮 Sokak Lambası" },
-	{ "Props", "Bench", "🪑 Park Bankı" }, { "Props", "Planter", "🪴 Çiçeklik" },
+	{ "Trees", "GardenTree", "🌳 Bahçe Meşe Ağacı" }, { "Trees", "CypressTree", "🌲 Selvi Ağacı" },
+	{ "Trees", "BoulevardTree", "🌴 Bulvar Ağacı" }, { "Trees", "HedgeBush", "🌿 Çit Çalılığı" },
+	{ "Props", "StreetLamp", "🏮 Sokak Lambası" }, { "Props", "Bench", "🪑 Park Bankı" },
+	{ "Props", "Planter", "🪴 Çiçeklik" }, { "Props", "StoneRock", "🪨 Peyzaj Kayası" },
 }
 
 for _, item in ipairs(catalogItems) do
@@ -722,8 +729,8 @@ RunService.RenderStepped:Connect(function()
 		local t = (groundY - ray.Origin.Y) / ray.Direction.Y
 		if t > 0 then
 			local hitPoint = ray.Origin + ray.Direction * t
-			local clampedX = math.clamp(hitPoint.X, origin.X - 35, origin.X + 35)
-			local clampedZ = math.clamp(hitPoint.Z, origin.Z - 35, origin.Z + 35)
+			local clampedX = math.clamp(hitPoint.X, origin.X - 85, origin.X + 85)
+			local clampedZ = math.clamp(hitPoint.Z, origin.Z - 85, origin.Z + 85)
 
 			local targetRot = CFrame.Angles(0, math.rad(dragYaw), 0)
 			draggedModel:PivotTo(CFrame.new(clampedX, groundY, clampedZ) * targetRot)

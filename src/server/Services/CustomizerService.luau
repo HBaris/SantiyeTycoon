@@ -91,8 +91,8 @@ function CustomizerService.Initialize()
 				local targetYaw = tonumber(value.Yaw) or 0
 
 				if targetX and targetZ then
-					local clampedX = math.clamp(targetX, origin.X - 36, origin.X + 36)
-					local clampedZ = math.clamp(targetZ, origin.Z - 36, origin.Z + 36)
+					local clampedX = math.clamp(targetX, origin.X - 86, origin.X + 86)
+					local clampedZ = math.clamp(targetZ, origin.Z - 86, origin.Z + 86)
 
 					local newRot = CFrame.Angles(0, math.rad(targetYaw), 0)
 					model:PivotTo(CFrame.new(clampedX, origin.Y, clampedZ) * newRot)
@@ -184,9 +184,9 @@ function CustomizerService.Initialize()
 				local tz = tonumber(transformData.Z)
 				if tx and tz then
 					targetPos = Vector3.new(
-						math.clamp(tx, origin.X - 36, origin.X + 36),
+						math.clamp(tx, origin.X - 86, origin.X + 86),
 						origin.Y + 2.0,
-						math.clamp(tz, origin.Z - 36, origin.Z + 36)
+						math.clamp(tz, origin.Z - 86, origin.Z + 86)
 					)
 				end
 				targetYaw = tonumber(transformData.Yaw) or 0
