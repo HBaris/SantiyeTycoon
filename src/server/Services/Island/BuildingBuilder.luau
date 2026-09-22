@@ -5,6 +5,7 @@
 -- (1: Dağ Kulübesi, 2: Tuğla Malikâne, 3: Konsol Villa, 4: Rezidans Kulesi, 5: Prestij Gökdelen)
 -- ============================================================================
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local PlotDataTypes = require(script.Parent.PlotDataTypes)
 
 local createPart = PlotDataTypes.createPart
@@ -12,7 +13,58 @@ local createCylinder = PlotDataTypes.createCylinder
 
 local BuildingBuilder = {}
 
+-- ReplicatedStorage.Assets.Buildings altındaki hazır modelleri arayan fonksiyon
+local function getReadyModel(level: number): Model?
+	local assets = ReplicatedStorage:FindFirstChild("Assets")
+	if not assets then return nil end
+	local buildings = assets:FindFirstChild("Buildings")
+	if not buildings then return nil end
+	local candidate = buildings:FindFirstChild("Level_" .. level)
+	if candidate and candidate:IsA("Model") then
+		return candidate
+	end
+	return nil
+end
+
 function BuildingBuilder.buildBuildingModel(parent: Instance, origin: Vector3, level: number): Model
+	-- 1. Önce ReplicatedStorage.Assets.Buildings altında hazır model var mı kontrol et
+	local readyTemplate = getReadyModel(level)
+	if readyTemplate then
+		local buildingModel = readyTemplate:Clone()
+		buildingModel.Name = "BuildingModel"
+
+		-- Tüm parçaları sabitle ve gereksiz betikleri temizle
+		for _, desc in ipairs(buildingModel:GetDescendants()) do
+			if desc:IsA("Script") or desc:IsA("LocalScript") then
+				desc:Destroy()
+			elseif desc:IsA("BasePart") then
+				desc.Anchored = true
+			end
+		end
+
+		-- Bounding box ve parsel alanına göre otomatik ölçekleme
+		local _, size = buildingModel:GetBoundingBox()
+		local maxAllowed = (level >= 5) and 34 or 28
+		local maxHoriz = math.max(size.X, size.Z)
+		if maxHoriz > maxAllowed then
+			local scaleFactor = maxAllowed / maxHoriz
+			buildingModel:ScaleTo(scaleFactor)
+			_, size = buildingModel:GetBoundingBox()
+		end
+
+		-- Parsele tam zemin seviyesinde ve merkezde hizala
+		local targetCF = CFrame.new(origin.X, origin.Y + 2 + (size.Y / 2), origin.Z)
+		buildingModel:PivotTo(targetCF)
+
+		if not buildingModel.PrimaryPart then
+			buildingModel.PrimaryPart = buildingModel:FindFirstChildWhichIsA("BasePart", true)
+		end
+
+		buildingModel.Parent = parent
+		return buildingModel
+	end
+
+	-- 2. Hazır model yoksa temiz prosedürel yedeği inşa et
 	local buildingModel = Instance.new("Model")
 	buildingModel.Name = "BuildingModel"
 

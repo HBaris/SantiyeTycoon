@@ -16,6 +16,48 @@ local createCylinder = PlotDataTypes.createCylinder
 
 local CommercialBuilder = {}
 
+-- ReplicatedStorage.Assets.Commercial altındaki hazır modelleri arayan fonksiyon
+local function getReadyCommercialModel(shopId: string): Model?
+	local assets = ReplicatedStorage:FindFirstChild("Assets")
+	if not assets then return nil end
+	local commFolder = assets:FindFirstChild("Commercial")
+	if not commFolder then return nil end
+
+	local candidate = commFolder:FindFirstChild(shopId)
+	if candidate and candidate:IsA("Model") then
+		return candidate
+	end
+	return nil
+end
+
+local function instantiateReadyModel(template: Model, targetCF: CFrame, maxAllowedSize: number): Model
+	local model = template:Clone()
+	for _, desc in ipairs(model:GetDescendants()) do
+		if desc:IsA("Script") or desc:IsA("LocalScript") then
+			desc:Destroy()
+		elseif desc:IsA("BasePart") then
+			desc.Anchored = true
+		end
+	end
+
+	local _, size = model:GetBoundingBox()
+	local maxHoriz = math.max(size.X, size.Z)
+	if maxHoriz > maxAllowedSize then
+		model:ScaleTo(maxAllowedSize / maxHoriz)
+		_, size = model:GetBoundingBox()
+	end
+
+	-- Zemin üzerinde düzgün duracak şekilde PivotTo
+	local placedCF = targetCF * CFrame.new(0, size.Y / 2, 0)
+	model:PivotTo(placedCF)
+
+	if not model.PrimaryPart then
+		model.PrimaryPart = model:FindFirstChildWhichIsA("BasePart", true)
+	end
+
+	return model
+end
+
 -- ============================================================================
 -- 1. YARDIMCI PROMODANE OBJELERİ (Sokak Lambası, Bank, Çiçeklik, Havuz)
 -- ============================================================================
@@ -104,6 +146,14 @@ end
 
 -- Dekoratif Süs Havuzu & Işıklı Fıskiye (Ornamental Fountain)
 function CommercialBuilder.buildFountain(parent: Instance, cf: CFrame): Model
+	local ready = getReadyCommercialModel("Fountain")
+	if ready then
+		local m = instantiateReadyModel(ready, cf, 9.0)
+		m.Name = "FountainPool"
+		m.Parent = parent
+		return m
+	end
+
 	local fountain = Instance.new("Model")
 	fountain.Name = "FountainPool"
 
@@ -224,6 +274,14 @@ end
 
 -- A. Taş Fırın & Patisserie Pavyonu
 function CommercialBuilder.buildBakeryPavilion(parent: Instance, cf: CFrame): Model
+	local ready = getReadyCommercialModel("Bakery")
+	if ready then
+		local m = instantiateReadyModel(ready, cf, 12.0)
+		m.Name = "Shop_Bakery"
+		m.Parent = parent
+		return m
+	end
+
 	local pav = buildPavilionShell(
 		parent, cf,
 		"Bakery", "Taş Fırın & Patisserie", "🥖",
@@ -255,6 +313,14 @@ end
 
 -- B. Gross Market Pavyonu
 function CommercialBuilder.buildMarketPavilion(parent: Instance, cf: CFrame): Model
+	local ready = getReadyCommercialModel("Market")
+	if ready then
+		local m = instantiateReadyModel(ready, cf, 14.0)
+		m.Name = "Shop_Market"
+		m.Parent = parent
+		return m
+	end
+
 	local pav = buildPavilionShell(
 		parent, cf,
 		"Market", "Gross Market", "🛒",
@@ -277,6 +343,14 @@ end
 
 -- C. VIP Berber & Güzellik Salonu Pavyonu
 function CommercialBuilder.buildBarberPavilion(parent: Instance, cf: CFrame): Model
+	local ready = getReadyCommercialModel("Barber")
+	if ready then
+		local m = instantiateReadyModel(ready, cf, 12.0)
+		m.Name = "Shop_Barber"
+		m.Parent = parent
+		return m
+	end
+
 	local pav = buildPavilionShell(
 		parent, cf,
 		"Barber", "VIP Berber Salonu", "💈",
@@ -297,6 +371,14 @@ end
 
 -- D. Pati PetShop Pavyonu
 function CommercialBuilder.buildPetShopPavilion(parent: Instance, cf: CFrame): Model
+	local ready = getReadyCommercialModel("PetShop")
+	if ready then
+		local m = instantiateReadyModel(ready, cf, 12.0)
+		m.Name = "Shop_PetShop"
+		m.Parent = parent
+		return m
+	end
+
 	local pav = buildPavilionShell(
 		parent, cf,
 		"PetShop", "Pati Pet Shop", "🐾",
@@ -316,6 +398,14 @@ end
 
 -- E. Açık Hava Kafe & Bistro Terası (Pavilion + Wooden Deck + 4 Cafe Tables + Umbrellas)
 function CommercialBuilder.buildRestaurantPavilion(parent: Instance, cf: CFrame): Model
+	local ready = getReadyCommercialModel("Restaurant")
+	if ready then
+		local m = instantiateReadyModel(ready, cf, 14.0)
+		m.Name = "Shop_Restaurant"
+		m.Parent = parent
+		return m
+	end
+
 	local restModel = Instance.new("Model")
 	restModel.Name = "Shop_Restaurant"
 

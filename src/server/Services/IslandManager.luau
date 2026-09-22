@@ -121,12 +121,12 @@ function IslandManager.CreatePlot(
 		craneModel, craneJib = SiteEquipmentBuilder.buildTowerCrane(plotFolder, craneOrigin)
 	end
 
-	-- 3. Bina Modeli
-	local buildingOrigin = plotOrigin + Vector3.new(4, 0, -4)
+	-- 3. Bina Modeli (Genişletilmiş Arka Parsel Alanı)
+	local buildingOrigin = plotOrigin + Vector3.new(4, 0, -10)
 	local buildingModel = BuildingBuilder.buildBuildingModel(plotFolder, buildingOrigin, buildingLevel)
 
 	-- 4. Çekiç Vurma Hedef Alanı
-	local hammerTarget = createPart(plotFolder, "HammerTarget", Vector3.new(32, 24, 32), CFrame.new(buildingOrigin + Vector3.new(0, 12, 0)), Color3.fromRGB(255, 255, 0), Enum.Material.ForceField, true, false)
+	local hammerTarget = createPart(plotFolder, "HammerTarget", Vector3.new(34, 28, 34), CFrame.new(buildingOrigin + Vector3.new(0, 14, 0)), Color3.fromRGB(255, 255, 0), Enum.Material.ForceField, true, false)
 	hammerTarget.Transparency = 1
 	hammerTarget:SetAttribute("IsHammerTarget", true)
 	hammerTarget:SetAttribute("OwnerUserId", player.UserId)
@@ -137,13 +137,13 @@ function IslandManager.CreatePlot(
 	buildingClickDetector.CursorIcon = "rbxasset://textures/HammerCursor.png"
 	buildingClickDetector.Parent = hammerTarget
 
-	-- 5. Çalışan İşçi NPC'leri
-	CityLifeService.spawnWorkerNPC(plotFolder, "Usta Ahmet", "Çekiç Ustası", CFrame.new(plotOrigin + Vector3.new(-8, 6.2, -6)))
-	CityLifeService.spawnWorkerNPC(plotFolder, "Mühendis Burak", "Şantiye Şefi (Plan)", CFrame.new(plotOrigin + Vector3.new(16, 6.2, 8)))
-	CityLifeService.spawnWorkerNPC(plotFolder, "Sevkiyatçı Can", "Lojistik & Kargo", CFrame.new(plotOrigin + Vector3.new(18, 6.2, 28)))
+	-- 5. Çalışan İşçi NPC'leri (Yol ve Kapı Önünden Uzak, Nizami Noktalarda)
+	CityLifeService.spawnWorkerNPC(plotFolder, "Usta Ahmet", "Çekiç Ustası", CFrame.new(plotOrigin + Vector3.new(24, 6.2, -6)))
+	CityLifeService.spawnWorkerNPC(plotFolder, "Mühendis Burak", "Şantiye Şefi (Plan)", CFrame.new(plotOrigin + Vector3.new(20, 6.2, -18)))
+	CityLifeService.spawnWorkerNPC(plotFolder, "Sevkiyatçı Can", "Lojistik & Kargo", CFrame.new(plotOrigin + Vector3.new(32, 6.2, 28)))
 
-	-- 6. Kargo Malzeme Teslimat Pad'i
-	local cargoPad = createPart(plotFolder, "CargoUnloadPad", Vector3.new(12, 0.6, 12), CFrame.new(plotOrigin + Vector3.new(20, 4.3, 34)), Color3.fromRGB(40, 180, 240), Enum.Material.SmoothPlastic, true, true)
+	-- 6. Kargo Malzeme Teslimat Pad'i (Sağ Yol Kenarı Yanaşma Cebi)
+	local cargoPad = createPart(plotFolder, "CargoUnloadPad", Vector3.new(12, 0.5, 12), CFrame.new(plotOrigin + Vector3.new(24, 2.3, 28)), Color3.fromRGB(40, 180, 240), Enum.Material.SmoothPlastic, true, true)
 	cargoPad:SetAttribute("IsCargoUnloadPad", true)
 	cargoPad:SetAttribute("PlotIndex", plotIndex)
 
@@ -163,9 +163,10 @@ function IslandManager.CreatePlot(
 	end)
 
 	local cGui = Instance.new("BillboardGui")
-	cGui.Size = UDim2.new(9, 0, 3, 0)
-	cGui.StudsOffset = Vector3.new(0, 4, 0)
-	cGui.AlwaysOnTop = true
+	cGui.Size = UDim2.new(6.5, 0, 2.2, 0)
+	cGui.StudsOffset = Vector3.new(0, 3.2, 0)
+	cGui.MaxDistance = 35
+	cGui.AlwaysOnTop = false
 	cGui.Parent = cargoPad
 
 	local cCard = Instance.new("Frame")
@@ -190,8 +191,8 @@ function IslandManager.CreatePlot(
 	-- 7. Şantiye Konteyneri / Ofis & Gelir Billboardu
 	local office, rateLabel = SiteEquipmentBuilder.buildSiteOffice(plotFolder, plotOrigin)
 
-	-- 8. Seviye Yükseltme Butonu (Upgrade Pad)
-	local upgradePad = createPart(plotFolder, "UpgradeBuildingPad", Vector3.new(14, 1.2, 10), CFrame.new(plotOrigin + Vector3.new(4, 2.6, 18)), Color3.fromRGB(255, 175, 40), Enum.Material.SmoothPlastic, true, true)
+	-- 8. Seviye Yükseltme Butonu (Upgrade Pad - Binanın Önünde Ferah Açık Alanda)
+	local upgradePad = createPart(plotFolder, "UpgradeBuildingPad", Vector3.new(9, 0.5, 7), CFrame.new(plotOrigin + Vector3.new(2, 2.3, 16)), Color3.fromRGB(255, 175, 40), Enum.Material.SmoothPlastic, true, true)
 	upgradePad:SetAttribute("PadType", "BuildingUpgrade")
 	upgradePad:SetAttribute("OwnerUserId", player.UserId)
 	upgradePad:SetAttribute("PlotIndex", plotIndex)
@@ -223,9 +224,10 @@ function IslandManager.CreatePlot(
 
 	local padGui = Instance.new("BillboardGui")
 	padGui.Name = "UpgradeBillboard"
-	padGui.Size = UDim2.new(10, 0, 4, 0)
-	padGui.StudsOffset = Vector3.new(0, 5, 0)
-	padGui.AlwaysOnTop = true
+	padGui.Size = UDim2.new(6.5, 0, 2.2, 0)
+	padGui.StudsOffset = Vector3.new(0, 3.2, 0)
+	padGui.MaxDistance = 35
+	padGui.AlwaysOnTop = false
 	padGui.Parent = upgradePad
 
 	local padCard = Instance.new("Frame")
@@ -254,8 +256,8 @@ function IslandManager.CreatePlot(
 	padLabel.Font = Enum.Font.FredokaOne
 	padLabel.Parent = padCard
 
-	-- 9. Yeni Şantiye Açma Pad'i (Unlock New Plot Pad)
-	local unlockPad = createPart(plotFolder, "UnlockNewPlotPad", Vector3.new(14, 1.2, 10), CFrame.new(plotOrigin + Vector3.new(22, 2.6, 18)), Color3.fromRGB(50, 205, 90), Enum.Material.SmoothPlastic, true, false)
+	-- 9. Yeni Şantiye Açma Pad'i (Unlock New Plot Pad - Sağ Aks, Kargodan Bağımsız)
+	local unlockPad = createPart(plotFolder, "UnlockNewPlotPad", Vector3.new(9, 0.5, 7), CFrame.new(plotOrigin + Vector3.new(24, 2.3, 12)), Color3.fromRGB(50, 205, 90), Enum.Material.SmoothPlastic, true, false)
 	unlockPad.Transparency = 1
 	unlockPad:SetAttribute("PadType", "UnlockPlot")
 	unlockPad:SetAttribute("OwnerUserId", player.UserId)
@@ -289,9 +291,10 @@ function IslandManager.CreatePlot(
 
 	local unlockGui = Instance.new("BillboardGui")
 	unlockGui.Name = "UnlockBillboard"
-	unlockGui.Size = UDim2.new(11, 0, 4.5, 0)
-	unlockGui.StudsOffset = Vector3.new(0, 5, 0)
-	unlockGui.AlwaysOnTop = true
+	unlockGui.Size = UDim2.new(6.5, 0, 2.2, 0)
+	unlockGui.StudsOffset = Vector3.new(0, 3.2, 0)
+	unlockGui.MaxDistance = 35
+	unlockGui.AlwaysOnTop = false
 	unlockGui.Enabled = false
 	unlockGui.Parent = unlockPad
 
