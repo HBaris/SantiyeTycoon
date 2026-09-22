@@ -27,10 +27,10 @@ screenGui.Parent = playerGui
 -- 2. Üst Durum Çubuğu (Top Bar Dashboard - Cities: Skylines Style)
 local topBar = Instance.new("Frame")
 topBar.Name = "TopCityBar"
-topBar.Size = UDim2.new(0, 480, 0, 44)
-topBar.Position = UDim2.new(0.5, -240, 0, 14)
+topBar.Size = UDim2.new(0, 620, 0, 42)
+topBar.Position = UDim2.new(0.5, -310, 0, 10)
 topBar.BackgroundColor3 = Color3.fromRGB(24, 27, 32)
-topBar.BackgroundTransparency = 0.15
+topBar.BackgroundTransparency = 0.12
 topBar.BorderSizePixel = 0
 topBar.Parent = screenGui
 
@@ -47,46 +47,13 @@ local barLayout = Instance.new("UIListLayout")
 barLayout.FillDirection = Enum.FillDirection.Horizontal
 barLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 barLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-barLayout.Padding = UDim.new(0, 10)
+barLayout.Padding = UDim.new(0, 8)
 barLayout.Parent = topBar
-
--- Nüfus Rozeti
-local popLabel = Instance.new("TextLabel")
-popLabel.Name = "PopulationLabel"
-popLabel.Size = UDim2.new(0, 110, 0, 32)
-popLabel.BackgroundTransparency = 1
-popLabel.Font = Enum.Font.FredokaOne
-popLabel.TextSize = 14
-popLabel.TextColor3 = Color3.fromRGB(240, 245, 250)
-popLabel.Text = "👥 Nüfus: 25"
-popLabel.Parent = topBar
-
--- Memnuniyet Rozeti
-local happyLabel = Instance.new("TextLabel")
-happyLabel.Name = "HappyLabel"
-happyLabel.Size = UDim2.new(0, 130, 0, 32)
-happyLabel.BackgroundTransparency = 1
-happyLabel.Font = Enum.Font.FredokaOne
-happyLabel.TextSize = 14
-happyLabel.TextColor3 = Color3.fromRGB(100, 230, 120)
-happyLabel.Text = "😊 Memnuniyet: %70"
-happyLabel.Parent = topBar
-
--- Gelir Çarpanı Rozeti
-local multLabel = Instance.new("TextLabel")
-multLabel.Name = "MultiplierLabel"
-multLabel.Size = UDim2.new(0, 100, 0, 32)
-multLabel.BackgroundTransparency = 1
-multLabel.Font = Enum.Font.FredokaOne
-multLabel.TextSize = 14
-multLabel.TextColor3 = Color3.fromRGB(255, 215, 60)
-multLabel.Text = "📈 Çarpan: 0.70x"
-multLabel.Parent = topBar
 
 -- Şehir Yönetim Menüsü Butonu
 local cityBtn = Instance.new("TextButton")
 cityBtn.Name = "CityMenuBtn"
-cityBtn.Size = UDim2.new(0, 95, 0, 32)
+cityBtn.Size = UDim2.new(0, 90, 0, 30)
 cityBtn.BackgroundColor3 = Color3.fromRGB(50, 140, 230)
 cityBtn.Text = "🏛️ YÖNETİM"
 cityBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -98,6 +65,61 @@ cityBtn.Parent = topBar
 local cbCorner = Instance.new("UICorner")
 cbCorner.CornerRadius = UDim.new(0, 8)
 cbCorner.Parent = cityBtn
+
+-- Nüfus Rozeti
+local popLabel = Instance.new("TextLabel")
+popLabel.Name = "PopulationLabel"
+popLabel.Size = UDim2.new(0, 95, 0, 30)
+popLabel.BackgroundTransparency = 1
+popLabel.Font = Enum.Font.FredokaOne
+popLabel.TextSize = 13
+popLabel.TextColor3 = Color3.fromRGB(240, 245, 250)
+popLabel.Text = "👥 Nüfus: 25"
+popLabel.Parent = topBar
+
+-- Memnuniyet Rozeti
+local happyLabel = Instance.new("TextLabel")
+happyLabel.Name = "HappyLabel"
+happyLabel.Size = UDim2.new(0, 125, 0, 30)
+happyLabel.BackgroundTransparency = 1
+happyLabel.Font = Enum.Font.FredokaOne
+happyLabel.TextSize = 13
+happyLabel.TextColor3 = Color3.fromRGB(100, 230, 120)
+happyLabel.Text = "😊 Memnuniyet: %70"
+happyLabel.Parent = topBar
+
+-- Gelir Çarpanı Rozeti
+local multLabel = Instance.new("TextLabel")
+multLabel.Name = "MultiplierLabel"
+multLabel.Size = UDim2.new(0, 90, 0, 30)
+multLabel.BackgroundTransparency = 1
+multLabel.Font = Enum.Font.FredokaOne
+multLabel.TextSize = 13
+multLabel.TextColor3 = Color3.fromRGB(255, 215, 60)
+multLabel.Text = "📈 Çarpan: 0.70x"
+multLabel.Parent = topBar
+
+-- Kristal Rozeti
+local crystalLabel = Instance.new("TextLabel")
+crystalLabel.Name = "CrystalLabel"
+crystalLabel.Size = UDim2.new(0, 75, 0, 30)
+crystalLabel.BackgroundTransparency = 1
+crystalLabel.Font = Enum.Font.FredokaOne
+crystalLabel.TextSize = 13
+crystalLabel.TextColor3 = Color3.fromRGB(110, 215, 255)
+crystalLabel.Text = "💎 25"
+crystalLabel.Parent = topBar
+
+-- Mühendis Rozeti
+local engineerLabel = Instance.new("TextLabel")
+engineerLabel.Name = "EngineerLabel"
+engineerLabel.Size = UDim2.new(0, 85, 0, 30)
+engineerLabel.BackgroundTransparency = 1
+engineerLabel.Font = Enum.Font.FredokaOne
+engineerLabel.TextSize = 13
+engineerLabel.TextColor3 = Color3.fromRGB(255, 195, 65)
+engineerLabel.Text = "👷 0.00"
+engineerLabel.Parent = topBar
 
 -- ============================================================================
 -- 3. ŞEHİR YÖNETİM MODAL PENCERESİ (Bölgeleme & Hizmet Binaları)
@@ -447,5 +469,14 @@ local function updateDisplay(stats: any)
 end
 
 Network.SyncCityStatsEvent.OnClientEvent:Connect(updateDisplay)
+
+Network.SyncResourcesEvent.OnClientEvent:Connect(function(cash: number?, crystals: number?, engineers: number?)
+	if crystals then
+		crystalLabel.Text = NumberFormat.FormatCrystals(crystals)
+	end
+	if engineers then
+		engineerLabel.Text = NumberFormat.FormatEngineers(engineers)
+	end
+end)
 
 print("[CityStatsUI] Cities: Skylines Üst Durum Paneli ve Yönetim Menüsü Başlatıldı.")

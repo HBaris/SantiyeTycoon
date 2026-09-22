@@ -208,10 +208,28 @@ function ConstructionService.Initialize()
 		DataService.UnloadPlayer(player)
 	end)
 
-	-- 3. Çekiç Vurma Olayı Dinleyicisi (Turbo Modu)
+	-- 3. Çekiç Vurma Olayı Dinleyicisi (Turbo Modu + Anında Tıklama Kazancı)
 	Network.HammerHitEvent.OnServerEvent:Connect(function(player)
+		local profile = DataService.GetProfile(player)
+		if not profile then return end
+
 		activeBoosts[player] = tick() + GameConfig.BOOST_DURATION
 		Network.SyncTurboStatusEvent:FireAllClients(player, true, GameConfig.BOOST_DURATION)
+
+		-- Anında Hızlandırma/Çekiç Vurma Nakit Ödülü
+		local totalSpeed, _ = calculateTotalProductionRate(player, true)
+		local clickReward = math.max(10, math.floor(totalSpeed * 0.35))
+		profile.Cash += clickReward
+
+		local leaderstats = player:FindFirstChild("leaderstats")
+		if leaderstats then
+			local cashVal = (leaderstats:FindFirstChild(GameConfig.CURRENCY_NAME) or leaderstats:FindFirstChild("💰 Kasa ($)")) :: IntValue?
+			if cashVal then
+				cashVal.Value = profile.Cash
+			end
+		end
+
+		Network.SyncResourcesEvent:FireClient(player, profile.Cash, profile.Crystals, profile.Engineers)
 	end)
 
 	-- Upgrade ve Garage Servislerini İlklendir
@@ -335,12 +353,29 @@ function ConstructionService.HookPlotPads(player: Player, plot: any)
 		end)
 	end
 
-	-- 4. Binaya Doğrudan Tıklama: Çekiçle vurup Turbo İnşaatı tetikler
+	-- 4. Binaya Doğrudan Tıklama: Çekiçle vurup Turbo İnşaatı tetikler ve anında nakit verir
 	if plot.BuildingClickDetector then
 		plot.BuildingClickDetector.MouseClick:Connect(function(clickPlayer)
 			if clickPlayer == player then
+				local profile = DataService.GetProfile(player)
+				if not profile then return end
+
 				activeBoosts[player] = tick() + GameConfig.BOOST_DURATION
 				Network.SyncTurboStatusEvent:FireAllClients(player, true, GameConfig.BOOST_DURATION)
+
+				local totalSpeed, _ = calculateTotalProductionRate(player, true)
+				local clickReward = math.max(10, math.floor(totalSpeed * 0.35))
+				profile.Cash += clickReward
+
+				local leaderstats = player:FindFirstChild("leaderstats")
+				if leaderstats then
+					local cashVal = (leaderstats:FindFirstChild(GameConfig.CURRENCY_NAME) or leaderstats:FindFirstChild("💰 Kasa ($)")) :: IntValue?
+					if cashVal then
+						cashVal.Value = profile.Cash
+					end
+				end
+
+				Network.SyncResourcesEvent:FireClient(player, profile.Cash, profile.Crystals, profile.Engineers)
 			end
 		end)
 	end

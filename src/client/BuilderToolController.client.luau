@@ -18,6 +18,8 @@ local currentPlotIndex = 1
 local currentProjectType = "SingleBuilding"
 local plotLevels = {} -- [plotIndex] = level
 local isUpgradingAnimating = false
+local hammerBtnRef: TextButton? = nil
+local currentTurboEndTime = 0
 
 -- Güvenli Ses Çalma Fonksiyonu (Asla hata vermez)
 local function playSfx(soundPath: string, volume: number?, pitch: number?)
@@ -58,6 +60,35 @@ local function performHammerStrike()
 	debounce = false
 end
 
+-- Butonun üzerinden yükselen uçan yazı efekti (+İP! ⚡)
+local function spawnFloatingCashText(button: GuiObject, text: string)
+	local hud = playerGui:FindFirstChild("BuilderHUD")
+	if not hud then return end
+
+	local floatLabel = Instance.new("TextLabel")
+	floatLabel.Size = UDim2.new(0, 130, 0, 30)
+	floatLabel.Position = button.Position + UDim2.new(0, 15, 0, -25)
+	floatLabel.BackgroundTransparency = 1
+	floatLabel.Font = Enum.Font.FredokaOne
+	floatLabel.Text = text
+	floatLabel.TextColor3 = Color3.fromRGB(255, 225, 45)
+	floatLabel.TextStrokeColor3 = Color3.fromRGB(60, 30, 0)
+	floatLabel.TextStrokeTransparency = 0.4
+	floatLabel.TextSize = 18
+	floatLabel.ZIndex = button.ZIndex + 5
+	floatLabel.Parent = hud
+
+	local tween = TweenService:Create(floatLabel, TweenInfo.new(0.65, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Position = floatLabel.Position + UDim2.new(0, 0, 0, -50),
+		TextTransparency = 1,
+		TextStrokeTransparency = 1,
+	})
+	tween:Play()
+	tween.Completed:Connect(function()
+		floatLabel:Destroy()
+	end)
+end
+
 -- Ekranın ortasında çıkan "Turbo Aktif!" Bildirimi (Tamamen Siyah Yazı, Parlama Yok)
 local function showTurboNotification(duration: number)
 	local hud = playerGui:FindFirstChild("BuilderHUD")
@@ -66,21 +97,29 @@ local function showTurboNotification(duration: number)
 	local banner = hud:FindFirstChild("TurboBanner") :: TextLabel
 	if not banner then return end
 
+	currentTurboEndTime = math.max(currentTurboEndTime, tick() + duration)
 	banner.Visible = true
-	banner.Text = string.format("🔥 2X TURBO İNŞAAT AKTİF! (%.0f sn) 🔥", duration)
+	banner.Text = string.format("🔥 2.5X TURBO İNŞAAT AKTİF! (%.0f sn) 🔥", duration)
 	playSfx("rbxasset://sounds/electronicpingshort.wav", 0.5, 1.3)
 
 	task.spawn(function()
-		local timeLeft = duration
-		while timeLeft > 0 do
-			task.wait(0.1)
-			timeLeft -= 0.1
+		while tick() < currentTurboEndTime do
+			local timeLeft = currentTurboEndTime - tick()
 			if banner and banner.Visible then
-				banner.Text = string.format("🔥 2X TURBO İNŞAAT AKTİF! (%.1f sn) 🔥", math.max(0, timeLeft))
+				banner.Text = string.format("🔥 2.5X TURBO İNŞAAT AKTİF! (%.1f sn) 🔥", math.max(0, timeLeft))
 			end
+			if hammerBtnRef then
+				hammerBtnRef.BackgroundColor3 = Color3.fromRGB(255, 140, 20)
+				hammerBtnRef.Text = string.format("🔥 TURBO (%.1fs)\n[HIZLI VUR! +İP]", math.max(0, timeLeft))
+			end
+			task.wait(0.1)
 		end
 		if banner then
 			banner.Visible = false
+		end
+		if hammerBtnRef then
+			hammerBtnRef.BackgroundColor3 = Color3.fromRGB(255, 195, 40)
+			hammerBtnRef.Text = "⚡ HIZLANDIR\n(+İP & Turbo)"
 		end
 	end)
 end
@@ -127,16 +166,16 @@ local function createBuilderHUD()
 	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	screenGui.Parent = playerGui
 
-	-- 1. Turbo Bildirim Afişi (Ekranın Üst-Orta Kısmı, Siyah Yazı, Parlamasız)
+	-- 1. Turbo Bildirim Afişi (Üst Çubuğun Altında Temiz ve Boşluklu)
 	local turboBanner = Instance.new("TextLabel")
 	turboBanner.Name = "TurboBanner"
-	turboBanner.Size = UDim2.new(0, 360, 0, 44)
-	turboBanner.Position = UDim2.new(0.5, -180, 0, 50)
+	turboBanner.Size = UDim2.new(0, 360, 0, 38)
+	turboBanner.Position = UDim2.new(0.5, -180, 0, 62)
 	turboBanner.BackgroundColor3 = Color3.fromRGB(255, 205, 50)
 	turboBanner.TextColor3 = Color3.fromRGB(20, 20, 20) -- SİYAH YAZI
 	turboBanner.TextStrokeTransparency = 1 -- PARLAMA YOK
 	turboBanner.Font = Enum.Font.FredokaOne
-	turboBanner.TextSize = 16
+	turboBanner.TextSize = 15
 	turboBanner.Visible = false
 	turboBanner.Parent = screenGui
 
@@ -171,83 +210,39 @@ local function createBuilderHUD()
 	ubStroke.Thickness = 3
 	ubStroke.Parent = upgBanner
 
-	-- 2b. Üst Kaynak Sayacı (Kristal & Mühendis)
-	local topResourceCard = Instance.new("Frame")
-	topResourceCard.Name = "TopResourceCard"
-	topResourceCard.Size = UDim2.new(0, 280, 0, 38)
-	topResourceCard.Position = UDim2.new(0.5, -140, 0, 8)
-	topResourceCard.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	topResourceCard.BackgroundTransparency = 0.05
-	topResourceCard.BorderSizePixel = 0
-	topResourceCard.Parent = screenGui
-
-	local trCorner = Instance.new("UICorner")
-	trCorner.CornerRadius = UDim.new(0, 12)
-	trCorner.Parent = topResourceCard
-
-	local trStroke = Instance.new("UIStroke")
-	trStroke.Color = Color3.fromRGB(220, 210, 195)
-	trStroke.Thickness = 2
-	trStroke.Parent = topResourceCard
-
-	local trLayout = Instance.new("UIListLayout")
-	trLayout.FillDirection = Enum.FillDirection.Horizontal
-	trLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	trLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-	trLayout.Padding = UDim.new(0, 14)
-	trLayout.Parent = topResourceCard
-
-	local hudCrystals = Instance.new("TextLabel")
-	hudCrystals.Name = "HudCrystals"
-	hudCrystals.Size = UDim2.new(0, 120, 1, 0)
-	hudCrystals.BackgroundTransparency = 1
-	hudCrystals.Text = "💎 25"
-	hudCrystals.TextColor3 = Color3.fromRGB(20, 20, 20)
-	hudCrystals.Font = Enum.Font.FredokaOne
-	hudCrystals.TextSize = 14
-	hudCrystals.Parent = topResourceCard
-
-	local hudEngineers = Instance.new("TextLabel")
-	hudEngineers.Name = "HudEngineers"
-	hudEngineers.Size = UDim2.new(0, 130, 1, 0)
-	hudEngineers.BackgroundTransparency = 1
-	hudEngineers.Text = "👷 0.00"
-	hudEngineers.TextColor3 = Color3.fromRGB(20, 20, 20)
-	hudEngineers.Font = Enum.Font.FredokaOne
-	hudEngineers.TextSize = 14
-	hudEngineers.Parent = topResourceCard
-
-	Network.SyncResourcesEvent.OnClientEvent:Connect(function(cash, crystals, engineers)
-		if crystals then hudCrystals.Text = NumberFormat.FormatCrystals(crystals) end
-		if engineers then hudEngineers.Text = NumberFormat.FormatEngineers(engineers) end
-	end)
-
-	-- 3. Sağ Alttaki Hızlandır Butonu (Kompakt ve Şık Sarı Kart, Siyah Yazı)
+	-- 3. Sağ Alttaki Hızlandır Butonu (Kompakt, Ergonomik ve Şık)
 	local hammerBtn = Instance.new("TextButton")
 	hammerBtn.Name = "HammerQuickButton"
-	hammerBtn.Size = UDim2.new(0, 135, 0, 42)
-	hammerBtn.Position = UDim2.new(1, -150, 1, -55)
+	hammerBtn.Size = UDim2.new(0, 160, 0, 52)
+	hammerBtn.Position = UDim2.new(1, -175, 1, -70)
 	hammerBtn.BackgroundColor3 = Color3.fromRGB(255, 195, 40)
-	hammerBtn.Text = "⚡ HIZLANDIR\n(Çekiç Vur)"
+	hammerBtn.Text = "⚡ HIZLANDIR\n(+İP & Turbo)"
 	hammerBtn.TextColor3 = Color3.fromRGB(20, 20, 20) -- SİYAH YAZI
 	hammerBtn.TextStrokeTransparency = 1 -- PARLAMA YOK
 	hammerBtn.Font = Enum.Font.FredokaOne
-	hammerBtn.TextSize = 13
+	hammerBtn.TextSize = 14
 	hammerBtn.Parent = screenGui
+	hammerBtnRef = hammerBtn
 
 	local btnCorner = Instance.new("UICorner")
-	btnCorner.CornerRadius = UDim.new(0, 10)
+	btnCorner.CornerRadius = UDim.new(0, 12)
 	btnCorner.Parent = hammerBtn
 
 	local btnStroke = Instance.new("UIStroke")
 	btnStroke.Color = Color3.fromRGB(190, 115, 0)
-	btnStroke.Thickness = 2
+	btnStroke.Thickness = 2.2
 	btnStroke.Parent = hammerBtn
 
 	hammerBtn.MouseButton1Click:Connect(function()
-		hammerBtn.Size = UDim2.new(0, 128, 0, 38)
+		TweenService:Create(hammerBtn, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Size = UDim2.new(0, 148, 0, 46),
+		}):Play()
 		task.wait(0.06)
-		hammerBtn.Size = UDim2.new(0, 135, 0, 42)
+		TweenService:Create(hammerBtn, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Size = UDim2.new(0, 160, 0, 52),
+		}):Play()
+
+		spawnFloatingCashText(hammerBtn, "+İP! ⚡")
 		performHammerStrike()
 	end)
 

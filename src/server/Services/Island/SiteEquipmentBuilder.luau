@@ -98,22 +98,24 @@ end
 -- 2. ŞANTİYE KONTEYNER OFİSİ VE GELİR BİLLBOARDU
 -- ============================================================================
 function SiteEquipmentBuilder.buildSiteOffice(parent: Instance, plotOrigin: Vector3): (Part, TextLabel)
-	local officeCFrame = CFrame.new(plotOrigin + Vector3.new(25, 5, -18))
+	-- Yürüme alanını tıkamayan, parsel sınırında şık ve ince şantiye bilgi totemi (Ayak altında durmaz)
+	local officeCFrame = CFrame.new(plotOrigin + Vector3.new(27, 3.5, -20))
 	local office = createPart(
 		parent, "SiteOffice",
-		Vector3.new(12, 6, 8),
+		Vector3.new(0.6, 7, 0.6),
 		officeCFrame,
-		Color3.fromRGB(50, 95, 160),
-		Enum.Material.CorrodedMetal,
-		true, true
+		Color3.fromRGB(45, 50, 58),
+		Enum.Material.Metal,
+		true, false -- CanCollide = false: Asla yürüyüşü engellemez, NPC'ler içine geçmez
 	)
 
-	-- Ofis Üzeri Gelir Göstergesi (Siyah Yazılı Temiz Beyaz Kart)
+	-- Üzerinde Asılı Temiz Gelir Göstergesi (Göz Hizası Üzerinde)
 	local rateGui = Instance.new("BillboardGui")
 	rateGui.Name = "RateBillboard"
-	rateGui.Size = UDim2.new(8, 0, 2.5, 0)
-	rateGui.StudsOffset = Vector3.new(0, 5, 0)
+	rateGui.Size = UDim2.new(6.5, 0, 2.2, 0)
+	rateGui.StudsOffset = Vector3.new(0, 4.2, 0)
 	rateGui.AlwaysOnTop = false
+	rateGui.MaxDistance = 45
 	rateGui.Parent = office
 
 	local rateCard = Instance.new("Frame")
@@ -130,7 +132,7 @@ function SiteEquipmentBuilder.buildSiteOffice(parent: Instance, plotOrigin: Vect
 
 	local rStroke = Instance.new("UIStroke")
 	rStroke.Color = Color3.fromRGB(230, 180, 20)
-	rStroke.Thickness = 2.5
+	rStroke.Thickness = 2.2
 	rStroke.Parent = rateCard
 
 	local rateLabel = Instance.new("TextLabel")
