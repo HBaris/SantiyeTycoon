@@ -1,9 +1,12 @@
 --!strict
 -- ============================================================================
 -- CityLifeService.luau
--- Canlı Mahalle Yaşamı, Cities: Skylines Sivil Yayalar, İşçi NPC'leri ve Sokak Mobilyaları
+-- Canlı Mahalle Yaşamı, Cities: Skylines Sivil Yayalar, İşçi NPC'leri,
+-- Promenade Gezintisi, Kafe Müşterileri ve Sokak Mobilyaları
 -- ============================================================================
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local GameConfig = require(ReplicatedStorage.Shared.GameConfig)
 local PlotDataTypes = require(script.Parent.PlotDataTypes)
 
 local createPart = PlotDataTypes.createPart
@@ -35,7 +38,7 @@ function CityLifeService.spawnWorkerNPC(parent: Instance, name: string, role: st
 	local armL = createPart(npc, "ArmL", Vector3.new(0.8, 2, 0.8), cframe * CFrame.new(-1.4, 0, 0), Color3.fromRGB(245, 120, 20), Enum.Material.SmoothPlastic, true, false)
 	local armR = createPart(npc, "ArmR", Vector3.new(0.8, 2, 0.8), cframe * CFrame.new(1.4, 0, 0), Color3.fromRGB(245, 120, 20), Enum.Material.SmoothPlastic, true, false)
 
-	-- İsim Etiketi (BillboardGui - Siyah Yazılı Kart)
+	-- İsim Etiketi (BillboardGui - Beyaz Kart)
 	local tagGui = Instance.new("BillboardGui")
 	tagGui.Size = UDim2.new(4.5, 0, 1.4, 0)
 	tagGui.StudsOffset = Vector3.new(0, 3.2, 0)
@@ -82,10 +85,13 @@ function CityLifeService.spawnCityResident(
 	role: string,
 	outfit: any,
 	startCF: CFrame,
-	patrolDistance: number
+	patrolDistance: number,
+	patrolAxis: string?
 ): Model
 	local npc = Instance.new("Model")
 	npc.Name = "Resident_" .. name
+
+	local axis = patrolAxis or "X"
 
 	local root = createPart(npc, "HumanoidRootPart", Vector3.new(2, 2, 1), startCF, outfit.Pants, Enum.Material.Fabric, true, false)
 	npc.PrimaryPart = root
@@ -136,7 +142,7 @@ function CityLifeService.spawnCityResident(
 	tagLabel.TextScaled = true
 	tagLabel.Parent = tagCard
 
-	-- Canlı Yürüme / Devriye Davranışı (Kaldırımda sakince gezinme)
+	-- Canlı Yürüme / Devriye Davranışı (X veya Z Ekseni Boyunca)
 	if patrolDistance and patrolDistance > 4 then
 		task.spawn(function()
 			local origPos = startCF.Position
@@ -161,9 +167,20 @@ function CityLifeService.spawnCityResident(
 					end
 				end
 
-				local newX = origPos.X + (currentStep * stepDist)
-				local lookDir = movingForward and 1 or -1
-				local newCF = CFrame.new(newX, origPos.Y, origPos.Z) * CFrame.Angles(0, lookDir > 0 and 0 or math.pi, 0)
+				local newPos: Vector3
+				local rotY: number
+
+				if axis == "Z" then
+					local newZ = origPos.Z + (currentStep * stepDist)
+					newPos = Vector3.new(origPos.X, origPos.Y, newZ)
+					rotY = movingForward and 0 or math.pi
+				else
+					local newX = origPos.X + (currentStep * stepDist)
+					newPos = Vector3.new(newX, origPos.Y, origPos.Z)
+					rotY = movingForward and (math.pi / 2) or (-math.pi / 2)
+				end
+
+				local newCF = CFrame.new(newPos) * CFrame.Angles(0, rotY, 0)
 
 				root.CFrame = newCF
 				torso.CFrame = newCF
@@ -181,7 +198,116 @@ function CityLifeService.spawnCityResident(
 end
 
 -- ============================================================================
--- 3. KENTSEL YAŞAM OBJELERİ (Cities: Skylines Urban Props)
+-- 3. OTURAN SAKİNLER (Kafe Masaları ve Park Banklarında Dinlenenler)
+-- ============================================================================
+function CityLifeService.spawnSeatedResident(
+	parent: Instance,
+	name: string,
+	role: string,
+	outfit: any,
+	seatCF: CFrame,
+	hasCoffee: boolean?
+): Model
+	local npc = Instance.new("Model")
+	npc.Name = "Seated_" .. name
+
+	-- Oturma Pozisyonu
+	local root = createPart(npc, "HumanoidRootPart", Vector3.new(2, 2, 1), seatCF * CFrame.new(0, 1.1, 0), outfit.Pants, Enum.Material.Fabric, true, false)
+	npc.PrimaryPart = root
+
+	local torso = createPart(npc, "Torso", Vector3.new(2, 2, 1), seatCF * CFrame.new(0, 1.1, 0), outfit.Shirt, Enum.Material.Fabric, true, false)
+	local head = createPart(npc, "Head", Vector3.new(1.2, 1.2, 1.2), seatCF * CFrame.new(0, 2.7, 0), Color3.fromRGB(250, 210, 160), Enum.Material.SmoothPlastic, true, false)
+	createPart(npc, "Hair", Vector3.new(1.3, 0.5, 1.3), seatCF * CFrame.new(0, 3.2, -0.05), Color3.fromRGB(50, 35, 25), Enum.Material.SmoothPlastic, true, false)
+
+	-- Oturur pozisyonda bacaklar (İleriye 90 derece bükülü)
+	createPart(npc, "SeatLegL", Vector3.new(0.8, 0.8, 1.8), seatCF * CFrame.new(-0.55, 0.3, 0.8), outfit.Pants, Enum.Material.Fabric, true, false)
+	createPart(npc, "SeatLegR", Vector3.new(0.8, 0.8, 1.8), seatCF * CFrame.new(0.55, 0.3, 0.8), outfit.Pants, Enum.Material.Fabric, true, false)
+
+	-- Kollar (Masaya veya kucağa doğru)
+	local armL = createPart(npc, "ArmL", Vector3.new(0.8, 1.6, 0.8), seatCF * CFrame.new(-1.3, 1.0, 0.4) * CFrame.Angles(math.rad(35), 0, 0), outfit.Shirt, Enum.Material.Fabric, true, false)
+	local armR = createPart(npc, "ArmR", Vector3.new(0.8, 1.6, 0.8), seatCF * CFrame.new(1.3, 1.0, 0.4) * CFrame.Angles(math.rad(35), 0, 0), outfit.Shirt, Enum.Material.Fabric, true, false)
+
+	if hasCoffee then
+		createCylinder(npc, "HandCup", Vector3.new(0.5, 0.35, 0.35), armR.CFrame * CFrame.new(0, -0.7, 0.3) * CFrame.Angles(0, 0, math.pi/2), Color3.fromRGB(245, 240, 230), Enum.Material.SmoothPlastic, true, false)
+	end
+
+	-- İsim Etiketi
+	local tagGui = Instance.new("BillboardGui")
+	tagGui.Size = UDim2.new(4.5, 0, 1.4, 0)
+	tagGui.StudsOffset = Vector3.new(0, 3.4, 0)
+	tagGui.AlwaysOnTop = true
+	tagGui.Parent = head
+
+	local tagCard = Instance.new("Frame")
+	tagCard.Size = UDim2.new(1, 0, 1, 0)
+	tagCard.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	tagCard.BackgroundTransparency = 0.1
+	tagCard.Parent = tagGui
+	local tcCorner = Instance.new("UICorner")
+	tcCorner.CornerRadius = UDim.new(0, 8)
+	tcCorner.Parent = tagCard
+
+	local tagLabel = Instance.new("TextLabel")
+	tagLabel.Size = UDim2.new(0.95, 0, 0.9, 0)
+	tagLabel.Position = UDim2.new(0.025, 0, 0.05, 0)
+	tagLabel.BackgroundTransparency = 1
+	tagLabel.Text = string.format("☕ %s\n[%s]", name, role)
+	tagLabel.TextColor3 = Color3.fromRGB(20, 20, 20)
+	tagLabel.Font = Enum.Font.FredokaOne
+	tagLabel.TextScaled = true
+	tagLabel.Parent = tagCard
+
+	npc.Parent = parent
+	return npc
+end
+
+-- ============================================================================
+-- 4. AÇIK HAVA ÇARŞISI SAKİNLERİ (Promenade Living Pedestrians & Cafe Patrons)
+-- ============================================================================
+function CityLifeService.spawnPromenadeResidents(parent: Instance, plotOrigin: Vector3, level: number): Folder
+	local promResidents = Instance.new("Folder")
+	promResidents.Name = "PromenadeResidents"
+
+	local pX, pY, pZ = plotOrigin.X, plotOrigin.Y + 2.2, plotOrigin.Z
+	local walkX = pX - 22
+
+	-- 1. Çarşı Yürüme Caddesinde Z Ekseni Boyunca Devriye Atan Yayalar
+	-- Yaya 1: Kuzeyden güneye vitrinleri gezerek yürür
+	local outfit1 = GameConfig.CITY_RESIDENTS.Outfits[1]
+	local walkCF1 = CFrame.new(walkX - 1.2, pY + 4.0, pZ - 20)
+	CityLifeService.spawnCityResident(promResidents, "Selin", "Alışverişte", outfit1, walkCF1, 44, "Z")
+
+	-- Yaya 2: Elinde kahvesiyle güneyden kuzeye yürür
+	local outfit2 = GameConfig.CITY_RESIDENTS.Outfits[2]
+	local walkCF2 = CFrame.new(walkX + 1.2, pY + 4.0, pZ + 22)
+	CityLifeService.spawnCityResident(promResidents, "Deniz", "Kahve Sever", outfit2, walkCF2, 38, "Z")
+
+	-- 2. Havuz Başındaki Bankta Dinlenen Sakin
+	local outfit3 = GameConfig.CITY_RESIDENTS.Outfits[3]
+	local benchCF = CFrame.new(pX - 14, pY + 0.6, pZ + 3.2) * CFrame.Angles(0, 0, 0)
+	CityLifeService.spawnSeatedResident(promResidents, "Murat", "Havuz Keyfi", outfit3, benchCF, true)
+
+	-- 3. Seviye 5 İse Kafe Terası Müşterileri (Bistro Sandalyelerinde Oturanlar)
+	if level >= 5 then
+		local cafeX = pX - 14
+		local outfit4 = GameConfig.CITY_RESIDENTS.Outfits[4]
+		local outfit5 = GameConfig.CITY_RESIDENTS.Outfits[5]
+
+		-- 1. Masanın Sandalyesi
+		local chairCF1 = CFrame.new(cafeX - 3.6 - 1.6, pY + 0.6, pZ - 20 - 1.5) * CFrame.Angles(0, math.rad(90), 0)
+		CityLifeService.spawnSeatedResident(promResidents, "Ece", "Bistro Sohbeti", outfit4, chairCF1, true)
+
+		-- 2. Masanın Sandalyesi
+		local chairCF2 = CFrame.new(cafeX + 3.6 + 1.6, pY + 0.6, pZ - 20 + 4.2) * CFrame.Angles(0, math.rad(-90), 0)
+		CityLifeService.spawnSeatedResident(promResidents, "Burak", "Kafede Dinleniyor", outfit5, chairCF2, true)
+	end
+
+	promResidents.Parent = parent
+	return promResidents
+end
+
+-- ============================================================================
+-- 5. KENTSEL YAŞAM OBJELERİ (Cities: Skylines Urban Props)
 -- ============================================================================
 function CityLifeService.spawnUrbanProps(parent: Instance, plotOrigin: Vector3): Model
 	local props = Instance.new("Model")

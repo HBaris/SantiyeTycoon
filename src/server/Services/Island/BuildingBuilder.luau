@@ -6,7 +6,6 @@
 -- ============================================================================
 
 local PlotDataTypes = require(script.Parent.PlotDataTypes)
-local CommercialBuilder = require(script.Parent.CommercialBuilder)
 
 local createPart = PlotDataTypes.createPart
 local createCylinder = PlotDataTypes.createCylinder
@@ -177,19 +176,64 @@ function BuildingBuilder.buildBuildingModel(parent: Instance, origin: Vector3, l
 	elseif level == 4 then
 		-- --------------------------------------------------------------------
 		-- SEVİYE 4: ÇOK KATLI ŞEHİR REZİDANS KULESİ (Mid-Rise Residence)
+		-- (Ferah, Lüks ve Prestijli Rezidans Giriş Lobisi)
 		-- --------------------------------------------------------------------
 		local towerW, towerH, towerD = 24, 38, 22
 
-		-- 1. Zemin Kat Lobi (Geniş Camlar, Kolonlar, Giriş Saçağı)
-		local groundLobby = createPart(buildingModel, "LobbyStructure", Vector3.new(towerW + 2, 7, towerD + 2), CFrame.new(bX, bY + 3.5, bZ), Color3.fromRGB(230, 230, 235), Enum.Material.Concrete, true, true)
+		-- 1. Zemin Kat Lobi Kütlesi
+		local groundLobby = createPart(buildingModel, "LobbyStructure", Vector3.new(towerW + 2, 7.5, towerD + 2), CFrame.new(bX, bY + 3.75, bZ), Color3.fromRGB(230, 230, 235), Enum.Material.Concrete, true, true)
 		buildingModel.PrimaryPart = groundLobby
 
-		-- Lobi Girişi ve 2 Alt Ticari Dükkan (Taş Fırın & Gross Market)
-		CommercialBuilder.buildStorefront(buildingModel, CFrame.new(bX - 6.5, bY + 3.2, bZ + (towerD / 2) + 1.2), "Bakery", 9.5, 6.2)
-		CommercialBuilder.buildStorefront(buildingModel, CFrame.new(bX + 6.5, bY + 3.2, bZ + (towerD / 2) + 1.2), "Market", 9.5, 6.2)
-		-- Orta Lobi Kapısı ve Giriş Çelik Saçağı (Canopy)
-		createPart(buildingModel, "EntranceCanopy", Vector3.new(4.5, 0.6, 4.5), CFrame.new(bX, bY + 5.5, bZ + (towerD / 2) + 2.8), Color3.fromRGB(45, 50, 60), Enum.Material.Metal, true, true)
-		createPart(buildingModel, "LobbyDoor", Vector3.new(3.2, 5, 0.6), CFrame.new(bX, bY + 2.8, bZ + (towerD / 2) + 1.1), Color3.fromRGB(40, 80, 120), Enum.Material.Glass, true, false)
+		-- Panoramik Yerden Tavana Cam Cephe (Zemin Kat Boyunca)
+		createPart(buildingModel, "LobbyGlassFront", Vector3.new(towerW - 2, 6.2, 0.5), CFrame.new(bX, bY + 3.5, bZ + (towerD / 2) + 1.0), Color3.fromRGB(180, 225, 255), Enum.Material.Glass, true, false)
+
+		-- Mimari Lobi Destek Sütunları
+		createPart(buildingModel, "LobbyPillarL", Vector3.new(1.8, 7.5, 1.8), CFrame.new(bX - 6, bY + 3.75, bZ + (towerD / 2) + 1.2), Color3.fromRGB(50, 55, 65), Enum.Material.Concrete, true, true)
+		createPart(buildingModel, "LobbyPillarR", Vector3.new(1.8, 7.5, 1.8), CFrame.new(bX + 6, bY + 3.75, bZ + (towerD / 2) + 1.2), Color3.fromRGB(50, 55, 65), Enum.Material.Concrete, true, true)
+
+		-- Görkemli Çelik Giriş Saçağı (Canopy) & Vurgu Çerçevesi
+		createPart(buildingModel, "GrandEntranceCanopy", Vector3.new(11, 0.8, 6.5), CFrame.new(bX, bY + 6.4, bZ + (towerD / 2) + 3.4), Color3.fromRGB(38, 42, 50), Enum.Material.Metal, true, true)
+		local canopyFascia = createPart(buildingModel, "CanopyFascia", Vector3.new(11.2, 0.3, 0.4), CFrame.new(bX, bY + 6.4, bZ + (towerD / 2) + 6.6), Color3.fromRGB(220, 185, 90), Enum.Material.SmoothPlastic, true, true)
+		local fGui = Instance.new("SurfaceGui")
+		fGui.Face = Enum.NormalId.Front
+		fGui.Parent = canopyFascia
+		local fLbl = Instance.new("TextLabel")
+		fLbl.Size = UDim2.new(1, 0, 1, 0)
+		fLbl.BackgroundTransparency = 1
+		fLbl.Text = "MARMARA RESIDENCE"
+		fLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+		fLbl.Font = Enum.Font.FredokaOne
+		fLbl.TextScaled = true
+		fLbl.Parent = fGui
+
+		-- Giriş Saçağı Altı Sıcak LED Aydınlatması
+		local canopySpot = createPart(buildingModel, "CanopySpot", Vector3.new(6, 0.2, 3), CFrame.new(bX, bY + 5.9, bZ + (towerD / 2) + 3.4), Color3.fromRGB(255, 240, 200), Enum.Material.Neon, true, false)
+		local cLight = Instance.new("PointLight")
+		cLight.Color = Color3.fromRGB(255, 235, 190)
+		cLight.Brightness = 1.3
+		cLight.Range = 18
+		cLight.Parent = canopySpot
+
+		-- Otomatik Çift Kanatlı Cam Kapı & Pirinç Kulplar
+		createPart(buildingModel, "LobbyDoorFrame", Vector3.new(5.2, 5.4, 0.6), CFrame.new(bX, bY + 2.7, bZ + (towerD / 2) + 1.1), Color3.fromRGB(45, 50, 58), Enum.Material.Metal, true, true)
+		createPart(buildingModel, "LobbyGlassDoor", Vector3.new(4.6, 5.0, 0.4), CFrame.new(bX, bY + 2.7, bZ + (towerD / 2) + 1.2), Color3.fromRGB(160, 215, 245), Enum.Material.Glass, true, false)
+		createPart(buildingModel, "DoorHandleL", Vector3.new(0.2, 2.2, 0.3), CFrame.new(bX - 0.6, bY + 2.7, bZ + (towerD / 2) + 1.5), Color3.fromRGB(220, 190, 100), Enum.Material.Metal, true, false)
+		createPart(buildingModel, "DoorHandleR", Vector3.new(0.2, 2.2, 0.3), CFrame.new(bX + 0.6, bY + 2.7, bZ + (towerD / 2) + 1.5), Color3.fromRGB(220, 190, 100), Enum.Material.Metal, true, false)
+
+		-- İç Mekan Resepsiyon Masası ve Arka Duvarı (Camdan Görünen Şıklık)
+		createPart(buildingModel, "ReceptionDesk", Vector3.new(5.5, 2.2, 1.8), CFrame.new(bX, bY + 1.1, bZ + (towerD / 2) - 3.5), Color3.fromRGB(50, 50, 55), Enum.Material.WoodPlanks, true, true)
+		local recWall = createPart(buildingModel, "ReceptionBackdrop", Vector3.new(7, 4.5, 0.4), CFrame.new(bX, bY + 3.2, bZ + (towerD / 2) - 6.0), Color3.fromRGB(35, 40, 50), Enum.Material.SmoothPlastic, true, true)
+		local rGui = Instance.new("SurfaceGui")
+		rGui.Face = Enum.NormalId.Front
+		rGui.Parent = recWall
+		local rLbl = Instance.new("TextLabel")
+		rLbl.Size = UDim2.new(1, 0, 1, 0)
+		rLbl.BackgroundTransparency = 1
+		rLbl.Text = "🏢 MARMARA RESIDENCE\nRESEPSİYON"
+		rLbl.TextColor3 = Color3.fromRGB(230, 210, 150)
+		rLbl.Font = Enum.Font.FredokaOne
+		rLbl.TextScaled = true
+		rLbl.Parent = rGui
 
 		-- 2. Ana Kule Gövdesi (4 Katlı Konut Bloğu)
 		createPart(buildingModel, "TowerBody", Vector3.new(towerW, towerH - 7, towerD), CFrame.new(bX, bY + 7 + ((towerH - 7) / 2), bZ), Color3.fromRGB(225, 220, 215), Enum.Material.Concrete, true, true)
@@ -236,25 +280,78 @@ function BuildingBuilder.buildBuildingModel(parent: Instance, origin: Vector3, l
 	elseif level >= 5 then
 		-- --------------------------------------------------------------------
 		-- SEVİYE 5: PRESTİJ GÖKDELEN & İŞ MERKEZİ (High-Tech Skyscraper)
+		-- (14 Stud Yüksekliğinde Panoramik Cam Atriyum, Döner Kapı & Prestij Lobi)
 		-- --------------------------------------------------------------------
 		local baseW, baseH, baseD = 28, 68, 26
 
-		-- 1. Görkemli 2 Katlı Cam Giriş Atriyumu & Destek Kolonları
-		local lobbyHeight = 12
+		-- 1. Görkemli 14-Stud Çift Kat Cam Giriş Atriyumu Kütlesi
+		local lobbyHeight = 14
 		local atriumLobby = createPart(buildingModel, "SkyscraperLobby", Vector3.new(baseW + 2, lobbyHeight, baseD + 2), CFrame.new(bX, bY + (lobbyHeight / 2), bZ), Color3.fromRGB(240, 240, 245), Enum.Material.Concrete, true, true)
 		buildingModel.PrimaryPart = atriumLobby
 
-		-- Atriyum Zemin Katı ve 4'lü Ticari Cadde (Market, Kuaför, Petshop, Restoran)
-		CommercialBuilder.buildStorefront(buildingModel, CFrame.new(bX - 8.5, bY + 3.4, bZ + (baseD / 2) + 1.2), "Market", 10.5, 6.5)
-		CommercialBuilder.buildStorefront(buildingModel, CFrame.new(bX + 8.5, bY + 3.4, bZ + (baseD / 2) + 1.2), "Barber", 10.5, 6.5)
-		CommercialBuilder.buildStorefront(buildingModel, CFrame.new(bX - (baseW / 2) - 1.2, bY + 3.4, bZ) * CFrame.Angles(0, math.rad(-90), 0), "PetShop", 11, 6.5)
-		CommercialBuilder.buildStorefront(buildingModel, CFrame.new(bX + (baseW / 2) + 1.2, bY + 3.4, bZ) * CFrame.Angles(0, math.rad(90), 0), "Restaurant", 11, 6.5)
+		-- Ön Cephe Panoramik Perde Cam Duvarı (Full-Height Curtain Wall)
+		createPart(buildingModel, "AtriumCurtainGlass", Vector3.new(baseW - 1.5, lobbyHeight - 1.2, 0.6), CFrame.new(bX, bY + (lobbyHeight / 2), bZ + (baseD / 2) + 1.1), Color3.fromRGB(160, 220, 255), Enum.Material.Glass, true, false)
 
-		-- Merkez Atriyum Döner Kapı & Destek Kolonları
-		createPart(buildingModel, "AtriumDoor", Vector3.new(4, 5.5, 0.6), CFrame.new(bX, bY + 2.8, bZ + (baseD / 2) + 1.1), Color3.fromRGB(40, 140, 220), Enum.Material.Glass, true, false)
-		for _, cx in ipairs({ -3.2, 3.2 }) do
-			createPart(buildingModel, "AtriumCol", Vector3.new(1.4, lobbyHeight, 1.4), CFrame.new(bX + cx, bY + (lobbyHeight / 2), bZ + (baseD / 2) + 1.4), Color3.fromRGB(80, 85, 95), Enum.Material.Metal, true, true)
+		-- Yan Cephe Panoramik Cam Duvarları
+		createPart(buildingModel, "AtriumSideGlassL", Vector3.new(0.6, lobbyHeight - 1.2, baseD - 4), CFrame.new(bX - (baseW/2) - 1.1, bY + (lobbyHeight / 2), bZ), Color3.fromRGB(160, 220, 255), Enum.Material.Glass, true, false)
+		createPart(buildingModel, "AtriumSideGlassR", Vector3.new(0.6, lobbyHeight - 1.2, baseD - 4), CFrame.new(bX + (baseW/2) + 1.1, bY + (lobbyHeight / 2), bZ), Color3.fromRGB(160, 220, 255), Enum.Material.Glass, true, false)
+
+		-- 4 Adet Anıtsal Titanyum Taşıyıcı Portal Kolon
+		for _, cx in ipairs({ -9.5, -3.8, 3.8, 9.5 }) do
+			createPart(buildingModel, "AtriumCol_"..cx, Vector3.new(1.6, lobbyHeight, 1.6), CFrame.new(bX + cx, bY + (lobbyHeight / 2), bZ + (baseD / 2) + 1.5), Color3.fromRGB(60, 65, 75), Enum.Material.Metal, true, true)
 		end
+
+		-- Görkemli Konsol Atriyum Saçağı (Canopy) & Vurgu Çerçevesi
+		createPart(buildingModel, "GrandAtriumCanopy", Vector3.new(14, 1.0, 7.5), CFrame.new(bX, bY + 8.5, bZ + (baseD / 2) + 4.2), Color3.fromRGB(30, 35, 42), Enum.Material.Metal, true, true)
+		local canopyGoldEdge = createPart(buildingModel, "CanopyGoldEdge", Vector3.new(14.2, 0.3, 0.4), CFrame.new(bX, bY + 8.5, bZ + (baseD / 2) + 8.0), Color3.fromRGB(220, 185, 70), Enum.Material.SmoothPlastic, true, true)
+		local aGui = Instance.new("SurfaceGui")
+		aGui.Face = Enum.NormalId.Front
+		aGui.Parent = canopyGoldEdge
+		local aLbl = Instance.new("TextLabel")
+		aLbl.Size = UDim2.new(1, 0, 1, 0)
+		aLbl.BackgroundTransparency = 1
+		aLbl.Text = "💎 MARMARA PRESTIGE CENTER"
+		aLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+		aLbl.Font = Enum.Font.FredokaOne
+		aLbl.TextScaled = true
+		aLbl.Parent = aGui
+
+		-- Saçak Altı Sıcak Aydınlatma Spotu
+		local aSpot = createPart(buildingModel, "AtriumCanopyLight", Vector3.new(8, 0.2, 4), CFrame.new(bX, bY + 7.9, bZ + (baseD / 2) + 4.2), Color3.fromRGB(255, 245, 210), Enum.Material.Neon, true, false)
+		local asLight = Instance.new("PointLight")
+		asLight.Color = Color3.fromRGB(255, 240, 205)
+		asLight.Brightness = 1.5
+		asLight.Range = 22
+		asLight.Parent = aSpot
+
+		-- Mimari Döner Kapı (Revolving Door with Glass Cylinder & Chrome Wings)
+		createCylinder(buildingModel, "RevolvingDrum", Vector3.new(5.6, 5.2, 5.2), CFrame.new(bX, bY + 2.8, bZ + (baseD / 2) + 1.4) * CFrame.Angles(0, 0, math.pi/2), Color3.fromRGB(160, 220, 250), Enum.Material.Glass, true, false)
+		createPart(buildingModel, "RevolvingAxis", Vector3.new(0.4, 5.6, 0.4), CFrame.new(bX, bY + 2.8, bZ + (baseD / 2) + 1.4), Color3.fromRGB(210, 215, 220), Enum.Material.Metal, true, false)
+		createPart(buildingModel, "RevolvingWingA", Vector3.new(4.8, 5.2, 0.15), CFrame.new(bX, bY + 2.8, bZ + (baseD / 2) + 1.4), Color3.fromRGB(180, 230, 255), Enum.Material.Glass, true, false)
+		createPart(buildingModel, "RevolvingWingB", Vector3.new(0.15, 5.2, 4.8), CFrame.new(bX, bY + 2.8, bZ + (baseD / 2) + 1.4), Color3.fromRGB(180, 230, 255), Enum.Material.Glass, true, false)
+
+		-- İç Mekan Prestij Resepsiyon Masası ve Arka Duvarı
+		createPart(buildingModel, "ExecReceptionDesk", Vector3.new(8, 2.4, 2.2), CFrame.new(bX, bY + 1.2, bZ + (baseD / 2) - 4.5), Color3.fromRGB(35, 40, 48), Enum.Material.WoodPlanks, true, true)
+		local execWall = createPart(buildingModel, "ExecReceptionWall", Vector3.new(10, 6, 0.4), CFrame.new(bX, bY + 3.8, bZ + (baseD / 2) - 7.5), Color3.fromRGB(25, 30, 38), Enum.Material.SmoothPlastic, true, true)
+		local eGui = Instance.new("SurfaceGui")
+		eGui.Face = Enum.NormalId.Front
+		eGui.Parent = execWall
+		local eLbl = Instance.new("TextLabel")
+		eLbl.Size = UDim2.new(1, 0, 1, 0)
+		eLbl.BackgroundTransparency = 1
+		eLbl.Text = "💎 MARMARA HOLDING\nEXECUTIVE PLAZA"
+		eLbl.TextColor3 = Color3.fromRGB(240, 220, 160)
+		eLbl.Font = Enum.Font.FredokaOne
+		eLbl.TextScaled = true
+		eLbl.Parent = eGui
+
+		-- Atriyum İçi Asılı Modern Geometrik Avize
+		local chandelier = createPart(buildingModel, "AtriumChandelier", Vector3.new(5, 0.8, 5), CFrame.new(bX, bY + 11.5, bZ + (baseD / 2) - 2), Color3.fromRGB(255, 245, 210), Enum.Material.Neon, true, false)
+		local chLight = Instance.new("PointLight")
+		chLight.Color = Color3.fromRGB(255, 240, 200)
+		chLight.Brightness = 1.4
+		chLight.Range = 26
+		chLight.Parent = chandelier
 
 		-- 2. Kademeli Yükselen Gökdelen Kulesi (Reflektif Mavi Cam & Metal Profiller)
 		-- Kademe 1: Alt Gövde

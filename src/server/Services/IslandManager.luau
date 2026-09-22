@@ -25,6 +25,7 @@ local Island = script.Parent.Island
 local PlotDataTypes = require(Island.PlotDataTypes)
 local IslandEnvironment = require(Island.IslandEnvironment)
 local BuildingBuilder = require(Island.BuildingBuilder)
+local CommercialBuilder = require(Island.CommercialBuilder)
 local SiteEquipmentBuilder = require(Island.SiteEquipmentBuilder)
 local CityLifeService = require(Island.CityLifeService)
 
@@ -430,18 +431,29 @@ function IslandManager.UpdateBuildingVisuals(player: Player, plotIndex: number, 
 	end
 
 	-- ========================================================================
-	-- CITIES: SKYLINES SİVİL MAHALLE YAŞAMI VE KENTSEL OBJELER
+	-- AÇIK HAVA ÇARŞISI (PROMENADE MEYDANI) VE CITIES: SKYLINES SİVİL YAŞAMI
 	-- ========================================================================
+	local oldPromenade = plot.Folder:FindFirstChild("CommercialPromenade")
+	if oldPromenade then oldPromenade:Destroy() end
+	local oldPromResidents = plot.Folder:FindFirstChild("PromenadeResidents")
+	if oldPromResidents then oldPromResidents:Destroy() end
 	local oldProps = plot.Folder:FindFirstChild("UrbanProps")
 	if oldProps then oldProps:Destroy() end
 	local oldResidents = plot.Folder:FindFirstChild("CityResidents")
 	if oldResidents then oldResidents:Destroy() end
 
 	if level >= 4 then
-		-- Kentsel Yaşam Objeleri (Otobüs Durağı, Yangın Musluğu, Çöp Kovaları, Sivil Otomobil)
+		-- 1. Açık Hava Çarşısı / Promenade Meydanı ve Müstakil Butik Pavyonlar
+		local totalRent = IslandManager.GetCommercialRent(level)
+		CommercialBuilder.buildPromenade(plot.Folder, plot.Origin, level, totalRent)
+
+		-- 2. Promenade Yaya ve Kafe Müşteri Simülasyonu
+		CityLifeService.spawnPromenadeResidents(plot.Folder, plot.Origin, level)
+
+		-- 3. Kentsel Yaşam Objeleri (Otobüs Durağı, Yangın Musluğu, Çöp Kovaları, Sivil Otomobil)
 		CityLifeService.spawnUrbanProps(plot.Folder, plot.Origin)
 
-		-- Sivil Mahalle Sakinleri (Yayalar)
+		-- 4. Otoyol Kaldırımı Sivil Sakinleri (Yayalar)
 		local resFolder = Instance.new("Folder")
 		resFolder.Name = "CityResidents"
 		resFolder.Parent = plot.Folder
@@ -457,7 +469,7 @@ function IslandManager.UpdateBuildingVisuals(player: Player, plotIndex: number, 
 			local rCF = CFrame.new(startX, 6.2, sidewalkZ + ((i % 2 == 0) and 2 or -2))
 			CityLifeService.spawnCityResident(resFolder, name, role, outfit, rCF, patrolDist)
 		end
-		print(string.format("[IslandManager] %s için %d. Projede canlı şehir yaşamı ve sivil sakinler aktif edildi! (Seviye %d)", player.Name, plotIndex, level))
+		print(string.format("[IslandManager] %s için %d. Projede Açık Hava Çarşısı, kira tabelası (+%s $/sn) ve canlı mahalle yaşamı aktif edildi! (Seviye %d)", player.Name, plotIndex, NumberFormat.FormatCash(totalRent), level))
 	end
 end
 
