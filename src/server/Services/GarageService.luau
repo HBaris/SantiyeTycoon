@@ -55,9 +55,10 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 		local seat = Instance.new("VehicleSeat")
 		seat.Name = "Seat"
 		seat.Size = Vector3.new(2, 0.8, 5)
-		seat.CFrame = spawnCFrame * CFrame.new(0, 1.2, 0)
+		seat.CFrame = spawnCFrame * CFrame.new(0, 1.4, 0)
 		seat.Color = vData.Color
 		seat.Material = Enum.Material.Metal
+		seat.CanCollide = false -- Gövdenin zemine veya kasislere sürtünmesini önler
 		seat.MaxSpeed = effectiveSpeed
 		seat.Torque = effectiveTorque
 		seat.TurnSpeed = 2.5
@@ -68,9 +69,11 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 		local stem = createPart(model, "Stem", Vector3.new(0.4, 3.2, 0.4), seat.CFrame * CFrame.new(0, 1.6, -2.2), Color3.fromRGB(50, 50, 55), Enum.Material.Metal, false)
 		local handleBar = createPart(model, "HandleBar", Vector3.new(2.4, 0.4, 0.4), seat.CFrame * CFrame.new(0, 3.2, -2.2), Color3.fromRGB(30, 30, 30), Enum.Material.Rubber, false)
 
-		-- Tekerlekler
-		local wFront = createPart(model, "WheelFront", Vector3.new(0.6, 1.2, 1.2), seat.CFrame * CFrame.new(0, -0.2, -2.2), Color3.fromRGB(30, 30, 30), Enum.Material.Rubber, true)
-		local wBack = createPart(model, "WheelBack", Vector3.new(0.6, 1.2, 1.2), seat.CFrame * CFrame.new(0, -0.2, 2.2), Color3.fromRGB(30, 30, 30), Enum.Material.Rubber, true)
+		-- Genişletilmiş ve Kasis Aşabilen Tekerlekler
+		local wFront = createPart(model, "WheelFront", Vector3.new(0.8, 1.6, 1.6), seat.CFrame * CFrame.new(0, -0.2, -2.2), Color3.fromRGB(30, 30, 30), Enum.Material.Rubber, true)
+		local wBack = createPart(model, "WheelBack", Vector3.new(0.8, 1.6, 1.6), seat.CFrame * CFrame.new(0, -0.2, 2.2), Color3.fromRGB(30, 30, 30), Enum.Material.Rubber, true)
+		wFront.CustomPhysicalProperties = PhysicalProperties.new(Enum.Material.Rubber)
+		wBack.CustomPhysicalProperties = PhysicalProperties.new(Enum.Material.Rubber)
 
 		-- Ön Far
 		local light = createPart(model, "Headlight", Vector3.new(0.5, 0.5, 0.3), seat.CFrame * CFrame.new(0, 2.5, -2.4), Color3.fromRGB(255, 255, 220), Enum.Material.Neon, false)
@@ -191,10 +194,11 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 	local mover = Instance.new("LinearVelocity")
 	mover.Name = "VehicleMover"
 	mover.Attachment0 = driveAtt
-	mover.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	mover.VelocityConstraintMode = Enum.VelocityConstraintMode.Line
+	mover.LineDirection = Vector3.new(0, 0, -1)
 	mover.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
 	mover.MaxForce = 0
-	mover.VectorVelocity = Vector3.zero
+	mover.LineVelocity = 0
 	mover.Parent = rootPart
 
 	-- Binme ProximityPrompt'u
@@ -207,15 +211,24 @@ local function buildVehicleModel(player: Player, vehicleType: string, spawnCFram
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = rootPart
 
+	-- Oyuncu bindiğinde binme promptunu gizle (E tuşu malzeme yükleme/boşaltma ile çakışmaz)
+	local vSeat = model:FindFirstChild("Seat") :: VehicleSeat?
+	if vSeat then
+		prompt.Enabled = (vSeat.Occupant == nil)
+		vSeat:GetPropertyChangedSignal("Occupant"):Connect(function()
+			prompt.Enabled = (vSeat.Occupant == nil)
+		end)
+	end
+
 	prompt.Triggered:Connect(function(promptPlayer)
 		local char = promptPlayer.Character
 		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-		local seat = model:FindFirstChild("Seat") :: VehicleSeat
-		if humanoid and seat and not seat.Occupant then
+		local currentSeat = model:FindFirstChild("Seat") :: VehicleSeat
+		if humanoid and currentSeat and not currentSeat.Occupant then
 			pcall(function()
 				rootPart:SetNetworkOwner(promptPlayer)
 			end)
-			seat:Sit(humanoid)
+			currentSeat:Sit(humanoid)
 		end
 	end)
 
@@ -271,7 +284,50 @@ function GarageService.DeliverCargo(player: Player, plotIndex: number)
 
 		-- Tüm istemcilere görsel kargo turbosunu senkronize et
 		Network.SyncTurboStatusEvent:FireAllClients(player, true, GameConfig.CARGO_BOOST_DURATION, GameConfig.CARGO_BOOST_MULTIPLIER)
+		Network.DeliverCargoEvent:FireClient(player, 0, plotIndex, bonusCash)
+
+		local leaderstats = player:FindFirstChild("leaderstats")
+		if leaderstats and profile then
+			local cashVal = (leaderstats:FindFirstChild(GameConfig.CURRENCY_NAME) or leaderstats:FindFirstChild("💰 Kasa ($)")) :: IntValue?
+			if cashVal then cashVal.Value = profile.Cash end
+			Network.SyncResourcesEvent:FireClient(player, profile.Cash, profile.Crystals, profile.Engineers)
+		end
+
 		print(string.format("[GarageService] %s Proje #%d için %d malzeme teslim etti! 45sn Turbo İnşaat başladı, +%d İP prim kazandı.", player.Name, plotIndex, cargoAmount, bonusCash))
+		return true
+	end
+	return false
+end
+
+function GarageService.GetCargo(player: Player): number
+	return playerCargo[player] or 0
+end
+
+function GarageService.GetPlayerFromVehicleOrPart(part: BasePart): Player?
+	if not part then return nil end
+	local charPlayer = Players:GetPlayerFromCharacter(part.Parent)
+	if charPlayer then return charPlayer end
+
+	for p, vModel in pairs(playerVehicles) do
+		if vModel and vModel.Parent and part:IsDescendantOf(vModel) then
+			return p
+		end
+	end
+	return nil
+end
+
+function GarageService.LoadCargo(player: Player): boolean
+	local profile = DataService.GetProfile(player)
+	if not profile then return false end
+
+	local activeVType = (profile.Garage and profile.Garage.Active) or "Scooter"
+	local effectiveCap = GarageService.GetEffectiveCargoCapacity(player, activeVType)
+	local currentCarried = playerCargo[player] or 0
+
+	if currentCarried < effectiveCap then
+		playerCargo[player] = effectiveCap
+		Network.LoadCargoEvent:FireClient(player, effectiveCap, effectiveCap)
+		print(string.format("[GarageService] %s taşıtına %d birim şantiye malzemesi yükledi.", player.Name, effectiveCap))
 		return true
 	end
 	return false
@@ -324,14 +380,7 @@ function GarageService.Initialize()
 
 	-- Kargo Malzemesi Yükleme İsteği (Ana Depodan)
 	Network.LoadCargoEvent.OnServerEvent:Connect(function(player: Player)
-		local profile = DataService.GetProfile(player)
-		if not profile then return end
-
-		local activeVType = (profile.Garage and profile.Garage.Active) or "Scooter"
-		local effectiveCap = GarageService.GetEffectiveCargoCapacity(player, activeVType)
-
-		playerCargo[player] = effectiveCap
-		print(string.format("[GarageService] %s taşıtına %d birim şantiye malzemesi yükledi (Geliştirilmiş).", player.Name, effectiveCap))
+		GarageService.LoadCargo(player)
 	end)
 
 	-- Taşıt İçi Geliştirme (Tuning / Upgrade) Dinleyicisi
@@ -458,26 +507,41 @@ function GarageService.EnsureGarageEnvironment()
 	sLabel.TextScaled = true
 	sLabel.Parent = signGui
 
-	-- Malzeme Yükleme İstasyonu (Drive-Thru Yükleme Alanı)
-	local loadingPad = createPart(folder, "CargoLoadingPad", Vector3.new(16, 0.8, 14), CFrame.new(depotX + 14, 4.5, depotZ - 8), Color3.fromRGB(255, 180, 20), Enum.Material.SmoothPlastic, true)
+	-- Malzeme Yükleme İstasyonu (Drive-Thru Yükleme Alanı) - CanCollide = false (Engelsiz Sürüş)
+	local loadingPad = createPart(folder, "CargoLoadingPad", Vector3.new(22, 0.1, 20), CFrame.new(depotX + 14, 4.75, depotZ - 8), Color3.fromRGB(255, 185, 25), Enum.Material.SmoothPlastic, true, false)
 	loadingPad:SetAttribute("IsCargoLoadingPad", true)
 
 	local loadPrompt = Instance.new("ProximityPrompt")
 	loadPrompt.ActionText = "Malzeme Yükle"
-	loadPrompt.ObjectText = "Taşıta Yükle"
-	loadPrompt.HoldDuration = 0.5
-	loadPrompt.MaxActivationDistance = 18
+	loadPrompt.ObjectText = "📦 Malzeme Deposu"
+	loadPrompt.HoldDuration = 0
+	loadPrompt.MaxActivationDistance = 24
 	loadPrompt.KeyboardKeyCode = Enum.KeyCode.E
 	loadPrompt.RequiresLineOfSight = false
 	loadPrompt.Parent = loadingPad
 
 	loadPrompt.Triggered:Connect(function(player)
-		local profile = DataService.GetProfile(player)
-		if profile then
-			local activeVType = (profile.Garage and profile.Garage.Active) or "Scooter"
-			local vData = GameConfig.VEHICLES[activeVType] or GameConfig.VEHICLES.Scooter
-			playerCargo[player] = vData.CargoCapacity
-			print(string.format("[GarageService] %s deposundan %d birim malzeme yükledi!", player.Name, vData.CargoCapacity))
+		GarageService.LoadCargo(player)
+	end)
+
+	-- Taşıtla üzerine yanaşıldığında / teker değdiğinde otomatik malzeme yükleme
+	local debounceLoad: { [Player]: boolean } = {}
+	loadingPad.Touched:Connect(function(hit)
+		local hitPlayer = GarageService.GetPlayerFromVehicleOrPart(hit)
+		if hitPlayer and not debounceLoad[hitPlayer] then
+			local profile = DataService.GetProfile(hitPlayer)
+			if profile then
+				local activeVType = (profile.Garage and profile.Garage.Active) or "Scooter"
+				local effectiveCap = GarageService.GetEffectiveCargoCapacity(hitPlayer, activeVType)
+				local currentCarried = playerCargo[hitPlayer] or 0
+				if currentCarried < effectiveCap then
+					debounceLoad[hitPlayer] = true
+					GarageService.LoadCargo(hitPlayer)
+					task.delay(1.5, function()
+						debounceLoad[hitPlayer] = nil
+					end)
+				end
+			end
 		end
 	end)
 

@@ -148,15 +148,16 @@ function IslandManager.CreatePlot(
 	end
 
 	-- 6. Kargo Malzeme Teslimat Pad'i (Sağ Yol Kenarı Yanaşma Cebi)
-	local cargoPad = createPart(plotFolder, "CargoUnloadPad", Vector3.new(12, 0.5, 12), CFrame.new(plotOrigin + Vector3.new(24, 2.3, 28)), Color3.fromRGB(40, 180, 240), Enum.Material.SmoothPlastic, true, true)
+	-- 6. Kargo Malzeme Teslimat Pad'i (Sağ Yol Kenarı Yanaşma Cebi) - CanCollide = false (Engelsiz Sürüş)
+	local cargoPad = createPart(plotFolder, "CargoUnloadPad", Vector3.new(16, 0.1, 16), CFrame.new(plotOrigin + Vector3.new(24, 2.05, 28)), Color3.fromRGB(40, 180, 240), Enum.Material.SmoothPlastic, true, false)
 	cargoPad:SetAttribute("IsCargoUnloadPad", true)
 	cargoPad:SetAttribute("PlotIndex", plotIndex)
 
 	local cPrompt = Instance.new("ProximityPrompt")
 	cPrompt.ActionText = "Malzemeleri Boşalt"
 	cPrompt.ObjectText = "⚡ 2.5x Turbo Başlat"
-	cPrompt.HoldDuration = 0.3
-	cPrompt.MaxActivationDistance = 22
+	cPrompt.HoldDuration = 0
+	cPrompt.MaxActivationDistance = 24
 	cPrompt.KeyboardKeyCode = Enum.KeyCode.E
 	cPrompt.RequiresLineOfSight = false
 	cPrompt.Parent = cargoPad
@@ -164,6 +165,23 @@ function IslandManager.CreatePlot(
 	cPrompt.Triggered:Connect(function(triggerPlayer)
 		if triggerPlayer == player then
 			GarageService.DeliverCargo(player, plotIndex)
+		end
+	end)
+
+	-- Taşıtla yanaşıldığında otomatik kargo teslimatı
+	local debounceUnload = false
+	cargoPad.Touched:Connect(function(hit)
+		if debounceUnload then return end
+		local hitPlayer = GarageService.GetPlayerFromVehicleOrPart(hit)
+		if hitPlayer == player then
+			local cargoAmount = GarageService.GetCargo(player)
+			if cargoAmount > 0 then
+				debounceUnload = true
+				GarageService.DeliverCargo(player, plotIndex)
+				task.delay(1.5, function()
+					debounceUnload = false
+				end)
+			end
 		end
 	end)
 
@@ -471,7 +489,7 @@ function IslandManager.UpdateBuildingVisuals(player: Player, plotIndex: number, 
 
 		-- Kargo teslim pad'i ve çekiç hedefi aktif
 		plot.CargoPad.Transparency = 0
-		plot.CargoPad.CanCollide = true
+		plot.CargoPad.CanCollide = false
 		local cpPrompt = plot.CargoPad:FindFirstChildOfClass("ProximityPrompt")
 		if cpPrompt then cpPrompt.Enabled = true end
 		local cpGui = plot.CargoPad:FindFirstChildOfClass("BillboardGui")

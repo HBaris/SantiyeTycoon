@@ -1,5 +1,10 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+
+local Network = require(ReplicatedStorage.Shared.Network)
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
 
@@ -151,15 +156,35 @@ RunService.Heartbeat:Connect(function(dt)
 			end
 
 			if mover then
-				mover.MaxForce = 300000
-				-- Negatif Z yönü Attachment0'a göre düz ileri yöndür
-				mover.VectorVelocity = Vector3.new(0, 0, -currentForwardSpeed)
+				mover.MaxForce = 350000
+				if mover.VelocityConstraintMode == Enum.VelocityConstraintMode.Line then
+					mover.LineVelocity = currentForwardSpeed
+				else
+					mover.VectorVelocity = Vector3.new(0, 0, -currentForwardSpeed)
+				end
 			end
 		end
 	else
 		currentForwardSpeed = 0
 		currentYaw = nil
 	end
+end)
+
+-- Kargo Senkronizasyonu
+Network.LoadCargoEvent.OnClientEvent:Connect(function(amount, cap)
+	currentCargo = amount
+	cargoBadge.Text = string.format("📦 Dolu: %d / %d", currentCargo, cap)
+	cargoBadge.BackgroundColor3 = Color3.fromRGB(130, 245, 160)
+end)
+
+Network.DeliverCargoEvent.OnClientEvent:Connect(function()
+	currentCargo = 0
+	local cap = 15
+	if currentSeat and currentSeat.Parent then
+		cap = currentSeat.Parent:GetAttribute("EffectiveCargo") or 15
+	end
+	cargoBadge.Text = string.format("📦 Boş Kasa (0 / %d)", cap)
+	cargoBadge.BackgroundColor3 = Color3.fromRGB(245, 240, 225)
 end)
 
 -- Her karede HUD hız ve durum güncellemesi
@@ -172,7 +197,42 @@ RunService.RenderStepped:Connect(function()
 		local model = currentSeat.Parent
 		local vType = model and model:GetAttribute("VehicleType") or "Taşıt"
 		local effectiveCargo = model and model:GetAttribute("EffectiveCargo") or 15
-		infoText.Text = string.format("🎮 %s (Maks: %d) | [G] Garaj | Space İn", vType, currentSeat.MaxSpeed)
-		cargoBadge.Text = string.format("📦 Kasa: %d Kapasite", effectiveCargo)
+		infoText.Text = string.format("🎮 %s (Maks: %d) | [G] Garaj | [E] Malzeme | Space İn", vType, currentSeat.MaxSpeed)
+		if currentCargo > 0 then
+			cargoBadge.Text = string.format("📦 Dolu: %d / %d", currentCargo, effectiveCargo)
+			cargoBadge.BackgroundColor3 = Color3.fromRGB(130, 245, 160)
+		else
+			cargoBadge.Text = string.format("📦 Boş Kasa (0 / %d)", effectiveCargo)
+			cargoBadge.BackgroundColor3 = Color3.fromRGB(245, 240, 225)
+		end
+	end
+end)
+
+-- Taşıt içerisindeyken E tuşu ile yakınındaki pad'e anında işlem yapma
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.KeyCode == Enum.KeyCode.E and currentSeat and currentSeat.Occupant then
+		local char = localPlayer.Character
+		local hrp = char and char:FindFirstChild("HumanoidRootPart")
+		if not hrp then return end
+
+		-- 1. Malzeme Yükleme İstasyonu Kontrolü
+		local depotFolder = Workspace:FindFirstChild("CentralGarageDepot")
+		local loadPad = depotFolder and depotFolder:FindFirstChild("CargoLoadingPad") :: BasePart?
+		if loadPad and (hrp.Position - loadPad.Position).Magnitude <= 26 then
+			Network.LoadCargoEvent:FireServer()
+			return
+		end
+
+		-- 2. Kargo Boşaltma İstasyonu Kontrolü
+		for _, desc in ipairs(Workspace:GetDescendants()) do
+			if desc:IsA("BasePart") and desc.Name == "CargoUnloadPad" then
+				if (hrp.Position - desc.Position).Magnitude <= 26 then
+					local plotIdx = desc:GetAttribute("PlotIndex") or 1
+					Network.DeliverCargoEvent:FireServer(plotIdx)
+					return
+				end
+			end
+		end
 	end
 end)

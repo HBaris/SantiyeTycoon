@@ -111,23 +111,50 @@ function CityLifeService.spawnWorkerNPC(parent: Instance, name: string, role: st
 	return npc
 end
 
+-- Akıllı Çakışma Önleyici Konumlandırma (Bina Modeline ve Duvarlara Çarpmayı Önler)
+local function resolveCollisionFreeCFrame(plotFolder: Instance, desiredCF: CFrame): CFrame
+	local bModel = plotFolder:FindFirstChild("BuildingModel") :: Model?
+	if not bModel then return desiredCF end
+
+	local bCF, bSize = bModel:GetBoundingBox()
+	local halfX = (bSize.X / 2) + 2.0
+	local halfZ = (bSize.Z / 2) + 2.0
+	local minX, maxX = bCF.Position.X - halfX, bCF.Position.X + halfX
+	local minZ, maxZ = bCF.Position.Z - halfZ, bCF.Position.Z + halfZ
+
+	local pos = desiredCF.Position
+	-- Eğer hedef nokta bina modelinin fiziksel sınır kutusu içindeyse
+	if pos.X >= minX and pos.X <= maxX and pos.Z >= minZ and pos.Z <= maxZ then
+		-- İşçiyi binanın ön cephesinin (yola bakan taraf) 3 stud önüne güvenle yerleştir
+		local safeZ = maxZ + 3.0
+		local rotOnly = desiredCF - pos
+		return CFrame.new(pos.X, pos.Y, safeZ) * rotOnly
+	end
+
+	return desiredCF
+end
+
 function CityLifeService.spawnSiteWorkers(parent: Instance, plotOrigin: Vector3): Folder
 	local workersFolder = parent:FindFirstChild("SiteWorkers")
 	if not workersFolder then
 		workersFolder = Instance.new("Folder")
 		workersFolder.Name = "SiteWorkers"
 		workersFolder.Parent = parent
+	else
+		workersFolder:ClearAllChildren()
 	end
 
-	if not workersFolder:FindFirstChild("Worker_Usta Ahmet") then
-		CityLifeService.spawnWorkerNPC(workersFolder, "Usta Ahmet", "Çekiç Ustası", CFrame.new(plotOrigin + Vector3.new(14, 6.2, 2)) * CFrame.Angles(0, math.rad(-60), 0))
-	end
-	if not workersFolder:FindFirstChild("Worker_Mühendis Burak") then
-		CityLifeService.spawnWorkerNPC(workersFolder, "Mühendis Burak", "Şantiye Şefi (Plan)", CFrame.new(plotOrigin + Vector3.new(14, 6.2, -10)) * CFrame.Angles(0, math.rad(-45), 0))
-	end
-	if not workersFolder:FindFirstChild("Worker_Sevkiyatçı Can") then
-		CityLifeService.spawnWorkerNPC(workersFolder, "Sevkiyatçı Can", "Lojistik & Kargo", CFrame.new(plotOrigin + Vector3.new(32, 6.2, 28)))
-	end
+	-- 1. Usta Ahmet (Çekiç Ustası) - Ön avlu / şantiye çalışma alanı (Bina cephesine bakar)
+	local cfAhmet = resolveCollisionFreeCFrame(parent, CFrame.new(plotOrigin + Vector3.new(-12, 6.2, 26)) * CFrame.Angles(0, math.rad(0), 0))
+	CityLifeService.spawnWorkerNPC(workersFolder, "Usta Ahmet", "Çekiç Ustası", cfAhmet)
+
+	-- 2. Mühendis Burak (Şantiye Şefi) - Şantiye Ofisi yanı (Şantiyeye bakar)
+	local cfBurak = resolveCollisionFreeCFrame(parent, CFrame.new(plotOrigin + Vector3.new(24, 6.2, -18)) * CFrame.Angles(0, math.rad(-110), 0))
+	CityLifeService.spawnWorkerNPC(workersFolder, "Mühendis Burak", "Şantiye Şefi (Plan)", cfBurak)
+
+	-- 3. Sevkiyatçı Can (Lojistik & Kargo) - Kargo Boşaltma cebi yanı (Yola bakar)
+	local cfCan = resolveCollisionFreeCFrame(parent, CFrame.new(plotOrigin + Vector3.new(30, 6.2, 26)) * CFrame.Angles(0, math.rad(-90), 0))
+	CityLifeService.spawnWorkerNPC(workersFolder, "Sevkiyatçı Can", "Lojistik & Kargo", cfCan)
 
 	return workersFolder :: Folder
 end
