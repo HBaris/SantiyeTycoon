@@ -95,52 +95,7 @@ function SiteEquipmentBuilder.buildTowerCrane(parent: Instance, craneOrigin: Vec
 end
 
 -- ============================================================================
--- 2. BİNA TAMAMLANDIĞINDA AÇILAN PRESTİJ MEYDANI (PLAZA PEYZAJI)
--- ============================================================================
-function SiteEquipmentBuilder.buildPlazaModel(parent: Instance, plotOrigin: Vector3): Model
-	local plazaModel = Instance.new("Model")
-	plazaModel.Name = "SkyscraperPlaza"
-
-	local pX, pZ = plotOrigin.X, plotOrigin.Z
-
-	-- 1. Parlak Granit/Mermer Meydan Zemin Kaplaması (Vincin ve Şantiyenin Yerine)
-	createPart(
-		plazaModel, "PlazaPavement",
-		Vector3.new(46, 0.4, 34),
-		CFrame.new(pX - 6, 6.2, pZ + 12),
-		Color3.fromRGB(235, 235, 240),
-		Enum.Material.Concrete,
-		true, true
-	)
-
-	-- Meydan Dekoratif Çiçeklik ve Palmiye Ağaçları
-	local planterOffsets = { Vector3.new(-22, 1.2, 18), Vector3.new(-22, 1.2, 2) }
-	for i, off in ipairs(planterOffsets) do
-		createPart(plazaModel, "PlanterBox_"..i, Vector3.new(5, 2, 5), CFrame.new(pX + off.X, 6.2 + off.Y, pZ + off.Z), Color3.fromRGB(60, 65, 75), Enum.Material.Slate, true, true)
-		createPart(plazaModel, "PlanterSoil_"..i, Vector3.new(4.4, 0.4, 4.4), CFrame.new(pX + off.X, 7.8, pZ + off.Z), Color3.fromRGB(90, 60, 40), Enum.Material.Ground, true, true)
-		-- Palmiye / Süs Ağacı
-		createPart(plazaModel, "TreeTrunk_"..i, Vector3.new(1.2, 8, 1.2), CFrame.new(pX + off.X, 12, pZ + off.Z), Color3.fromRGB(110, 80, 50), Enum.Material.Wood, true, true)
-		createPart(plazaModel, "TreeCrown_"..i, Vector3.new(7, 5, 7), CFrame.new(pX + off.X, 16, pZ + off.Z), Color3.fromRGB(45, 130, 60), Enum.Material.Grass, true, false)
-	end
-
-	-- Meydan Oturma Bankları
-	createPart(plazaModel, "PlazaBench", Vector3.new(8, 1.4, 2.5), CFrame.new(pX - 10, 7.1, pZ + 20), Color3.fromRGB(130, 85, 45), Enum.Material.WoodPlanks, true, true)
-
-	-- Meydan LED Feneri
-	local pLamp = createPart(plazaModel, "PlazaLamp", Vector3.new(0.8, 11, 0.8), CFrame.new(pX - 22, 11.5, pZ + 26), Color3.fromRGB(45, 50, 55), Enum.Material.Metal, true, true)
-	local pBulb = createPart(plazaModel, "PlazaLampBulb", Vector3.new(2, 0.6, 2), CFrame.new(pX - 22, 17, pZ + 26), Color3.fromRGB(255, 245, 200), Enum.Material.Neon, true, false)
-	local pl = Instance.new("PointLight")
-	pl.Color = Color3.fromRGB(255, 240, 200)
-	pl.Brightness = 1.0
-	pl.Range = 25
-	pl.Parent = pBulb
-
-	plazaModel.Parent = parent
-	return plazaModel
-end
-
--- ============================================================================
--- 3. ŞANTİYE KONTEYNER OFİSİ VE GELİR BİLLBOARDU
+-- 2. ŞANTİYE KONTEYNER OFİSİ VE GELİR BİLLBOARDU
 -- ============================================================================
 function SiteEquipmentBuilder.buildSiteOffice(parent: Instance, plotOrigin: Vector3): (Part, TextLabel)
 	local officeCFrame = CFrame.new(plotOrigin + Vector3.new(25, 5, -18))

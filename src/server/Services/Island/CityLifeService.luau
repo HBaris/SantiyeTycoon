@@ -30,7 +30,7 @@ function CityLifeService.spawnWorkerNPC(parent: Instance, name: string, role: st
 
 	-- Kafa & Sarı İnşaat Bareti
 	local head = createPart(npc, "Head", Vector3.new(1.2, 1.2, 1.2), cframe * CFrame.new(0, 1.6, 0), Color3.fromRGB(250, 210, 160), Enum.Material.SmoothPlastic, true, false)
-	createPart(npc, "Hardhat", Vector3.new(1.4, 0.6, 1.6), cframe * CFrame.new(0, 2.2, 0), Color3.fromRGB(245, 200, 30), Enum.Material.SmoothPlastic, true, false)
+	local hardhat = createPart(npc, "Hardhat", Vector3.new(1.4, 0.6, 1.6), cframe * CFrame.new(0, 2.2, 0), Color3.fromRGB(245, 200, 30), Enum.Material.SmoothPlastic, true, false)
 
 	-- Bacaklar ve Kollar
 	createPart(npc, "LegL", Vector3.new(0.8, 2, 0.8), cframe * CFrame.new(-0.55, -2, 0), Color3.fromRGB(40, 70, 130), Enum.Material.Fabric, true, false)
@@ -65,13 +65,47 @@ function CityLifeService.spawnWorkerNPC(parent: Instance, name: string, role: st
 	tagLabel.TextScaled = true
 	tagLabel.Parent = tagCard
 
-	-- Eline alet ekleme
+	-- Eline alet ekleme ve çalışma animasyonu
+	local hHandle: Part? = nil
+	local hHead: Part? = nil
+	local clipboard: Part? = nil
+
 	if role:find("Çekiç") then
-		local hHandle = createPart(npc, "ToolHandle", Vector3.new(0.3, 1.5, 0.3), armR.CFrame * CFrame.new(0, -0.8, -0.4) * CFrame.Angles(math.rad(45), 0, 0), Color3.fromRGB(150, 100, 50), Enum.Material.Wood, true, false)
-		createPart(npc, "ToolHead", Vector3.new(0.6, 0.5, 0.8), hHandle.CFrame * CFrame.new(0, 0.7, 0), Color3.fromRGB(80, 80, 85), Enum.Material.Metal, true, false)
+		hHandle = createPart(npc, "ToolHandle", Vector3.new(0.3, 1.5, 0.3), armR.CFrame * CFrame.new(0, -0.8, -0.4) * CFrame.Angles(math.rad(45), 0, 0), Color3.fromRGB(150, 100, 50), Enum.Material.Wood, true, false)
+		hHead = createPart(npc, "ToolHead", Vector3.new(0.6, 0.5, 0.8), hHandle.CFrame * CFrame.new(0, 0.7, 0), Color3.fromRGB(80, 80, 85), Enum.Material.Metal, true, false)
 	elseif role:find("Plan") then
-		createPart(npc, "Clipboard", Vector3.new(1.2, 0.1, 1.4), armR.CFrame * CFrame.new(0, -0.6, -0.4) * CFrame.Angles(math.rad(30), 0, 0), Color3.fromRGB(240, 235, 220), Enum.Material.SmoothPlastic, true, false)
+		clipboard = createPart(npc, "Clipboard", Vector3.new(1.2, 0.1, 1.4), armR.CFrame * CFrame.new(0, -0.6, -0.4) * CFrame.Angles(math.rad(30), 0, 0), Color3.fromRGB(240, 235, 220), Enum.Material.SmoothPlastic, true, false)
 	end
+
+	-- Çalışan Canlılık Animasyonu
+	task.spawn(function()
+		local baseArmRCF = cframe * CFrame.new(1.4, 0, 0)
+		local baseHeadCF = cframe * CFrame.new(0, 1.6, 0)
+		local baseHardhatCF = cframe * CFrame.new(0, 2.2, 0)
+
+		if role:find("Çekiç") and hHandle and hHead then
+			local swing = false
+			while npc.Parent do
+				task.wait(0.5)
+				swing = not swing
+				local angle = swing and math.rad(45) or math.rad(-15)
+				local armCF = baseArmRCF * CFrame.Angles(angle, 0, 0)
+				armR.CFrame = armCF
+				local handleCF = armCF * CFrame.new(0, -0.8, -0.4) * CFrame.Angles(math.rad(45), 0, 0)
+				hHandle.CFrame = handleCF
+				hHead.CFrame = handleCF * CFrame.new(0, 0.7, 0)
+			end
+		elseif role:find("Plan") then
+			local step = 0
+			while npc.Parent do
+				task.wait(2.2)
+				step = (step + 1) % 3
+				local rotY = (step == 1) and math.rad(-20) or ((step == 2) and math.rad(20) or 0)
+				head.CFrame = baseHeadCF * CFrame.Angles(0, rotY, 0)
+				hardhat.CFrame = baseHardhatCF * CFrame.Angles(0, rotY, 0)
+			end
+		end
+	end)
 
 	npc.Parent = parent
 	return npc
@@ -310,70 +344,10 @@ function CityLifeService.spawnPromenadeResidents(parent: Instance, plotOrigin: V
 end
 
 -- ============================================================================
--- 5. KENTSEL YAŞAM OBJELERİ (Cities: Skylines Urban Props)
+-- 5. KENTSEL YAŞAM OBJELERİ (Hazır Roblox Modelleri Entegrasyonu için Ayrıldı)
 -- ============================================================================
-function CityLifeService.spawnUrbanProps(parent: Instance, plotOrigin: Vector3): Model
-	local props = Instance.new("Model")
-	props.Name = "UrbanProps"
-
-	local pX, pZ = plotOrigin.X, plotOrigin.Z
-	local sidewalkZ = pZ + 36 -- Otoyol kenarı kaldırım hattı
-
-	-- 1. Cam Otobüs Durağı (Modern Glass Bus Stop)
-	local busStopCF = CFrame.new(pX - 18, 5.8, sidewalkZ)
-	createPart(props, "BusStopBack", Vector3.new(12, 7, 0.4), busStopCF * CFrame.new(0, 0, -2.5), Color3.fromRGB(190, 235, 255), Enum.Material.Glass, true, true)
-	createPart(props, "BusStopRoof", Vector3.new(13, 0.6, 6), busStopCF * CFrame.new(0, 3.6, 0.2), Color3.fromRGB(50, 55, 60), Enum.Material.Metal, true, true)
-	for _, sx in ipairs({ -5.8, 5.8 }) do
-		createPart(props, "BusStopSide", Vector3.new(0.4, 7, 4.5), busStopCF * CFrame.new(sx, 0, -0.4), Color3.fromRGB(190, 235, 255), Enum.Material.Glass, true, true)
-	end
-	createPart(props, "BusStopBench", Vector3.new(8, 1.2, 1.8), busStopCF * CFrame.new(0, -2.2, -1.2), Color3.fromRGB(130, 85, 45), Enum.Material.WoodPlanks, true, true)
-	local bSign = createPart(props, "BusSign", Vector3.new(3.5, 2.5, 0.3), busStopCF * CFrame.new(-6.2, 1.8, 2.2), Color3.fromRGB(30, 100, 220), Enum.Material.SmoothPlastic, true, true)
-	local bGui = Instance.new("SurfaceGui")
-	bGui.Face = Enum.NormalId.Front
-	bGui.Parent = bSign
-	local bLbl = Instance.new("TextLabel")
-	bLbl.Size = UDim2.new(1, 0, 1, 0)
-	bLbl.BackgroundTransparency = 1
-	bLbl.Text = "🚏 OTOBÜS DURAĞI\n(HAT 42: ŞANTİYE-KENT)"
-	bLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-	bLbl.Font = Enum.Font.FredokaOne
-	bLbl.TextScaled = true
-	bLbl.Parent = bGui
-
-	-- 2. Kırmızı Yangın Musluğu (Fire Hydrant)
-	local hydrantCF = CFrame.new(pX + 28, 5.2, sidewalkZ)
-	createCylinder(props, "HydrantBody", Vector3.new(2.4, 1.2, 1.2), hydrantCF * CFrame.Angles(0, 0, math.pi/2), Color3.fromRGB(220, 40, 40), Enum.Material.Metal, true, true)
-	createPart(props, "HydrantTop", Vector3.new(1.4, 0.6, 1.4), hydrantCF * CFrame.new(0, 1.4, 0), Color3.fromRGB(220, 40, 40), Enum.Material.Metal, true, true)
-
-	-- 3. Paslanmaz Çelik Şehir Çöp Kovası
-	local binCF = CFrame.new(pX + 24, 5.2, sidewalkZ)
-	createCylinder(props, "TrashBin", Vector3.new(2.6, 1.4, 1.4), binCF * CFrame.Angles(0, 0, math.pi/2), Color3.fromRGB(70, 75, 80), Enum.Material.Metal, true, true)
-
-	-- 4. Sokak İsim Levhası (Yeşil Şehir Tabelası)
-	local postCF = CFrame.new(pX + 32, 8.5, sidewalkZ)
-	createPart(props, "SignPole", Vector3.new(0.5, 8, 0.5), postCF, Color3.fromRGB(60, 65, 70), Enum.Material.Metal, true, true)
-	local stSign = createPart(props, "StreetNamePlate", Vector3.new(6.5, 1.2, 0.2), postCF * CFrame.new(0, 3.6, 0), Color3.fromRGB(35, 120, 60), Enum.Material.SmoothPlastic, true, true)
-	local stGui = Instance.new("SurfaceGui")
-	stGui.Face = Enum.NormalId.Front
-	stGui.Parent = stSign
-	local stLbl = Instance.new("TextLabel")
-	stLbl.Size = UDim2.new(1, 0, 1, 0)
-	stLbl.BackgroundTransparency = 1
-	stLbl.Text = "BARBAROS BULVARI"
-	stLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-	stLbl.Font = Enum.Font.FredokaOne
-	stLbl.TextScaled = true
-	stLbl.Parent = stGui
-
-	-- 5. Park Etmiş Sivil Otomobil (Civilian Sedan)
-	local carCF = CFrame.new(pX - 28, 5.4, sidewalkZ + 12)
-	createPart(props, "CivCarChassis", Vector3.new(6.2, 1.2, 13), carCF, Color3.fromRGB(40, 70, 130), Enum.Material.SmoothPlastic, true, true)
-	createPart(props, "CivCarCabin", Vector3.new(5.8, 2.2, 7.5), carCF * CFrame.new(0, 1.6, -0.6), Color3.fromRGB(40, 70, 130), Enum.Material.SmoothPlastic, true, true)
-	createPart(props, "CivCarWindshield", Vector3.new(5.4, 1.8, 0.4), carCF * CFrame.new(0, 1.6, -4.4) * CFrame.Angles(math.rad(-25), 0, 0), Color3.fromRGB(160, 220, 250), Enum.Material.Glass, true, false)
-	createPart(props, "CivCarRearWindow", Vector3.new(5.4, 1.8, 0.4), carCF * CFrame.new(0, 1.6, 3.2) * CFrame.Angles(math.rad(25), 0, 0), Color3.fromRGB(160, 220, 250), Enum.Material.Glass, true, false)
-
-	props.Parent = parent
-	return props
+function CityLifeService.spawnUrbanProps(parent: Instance, plotOrigin: Vector3): Model?
+	return nil
 end
 
 return CityLifeService

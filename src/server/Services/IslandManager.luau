@@ -140,9 +140,9 @@ function IslandManager.CreatePlot(
 	buildingClickDetector.CursorIcon = "rbxasset://textures/HammerCursor.png"
 	buildingClickDetector.Parent = hammerTarget
 
-	-- 5. Çalışan İşçi NPC'leri (Yol ve Kapı Önünden Uzak, Nizami Noktalarda)
-	CityLifeService.spawnWorkerNPC(plotFolder, "Usta Ahmet", "Çekiç Ustası", CFrame.new(plotOrigin + Vector3.new(24, 6.2, -6)))
-	CityLifeService.spawnWorkerNPC(plotFolder, "Mühendis Burak", "Şantiye Şefi (Plan)", CFrame.new(plotOrigin + Vector3.new(20, 6.2, -18)))
+	-- 5. Çalışan İşçi NPC'leri (Konteyner ve Ekran Alanından Uzak, Nizami Noktalarda)
+	CityLifeService.spawnWorkerNPC(plotFolder, "Usta Ahmet", "Çekiç Ustası", CFrame.new(plotOrigin + Vector3.new(14, 6.2, 2)) * CFrame.Angles(0, math.rad(-60), 0))
+	CityLifeService.spawnWorkerNPC(plotFolder, "Mühendis Burak", "Şantiye Şefi (Plan)", CFrame.new(plotOrigin + Vector3.new(14, 6.2, -10)) * CFrame.Angles(0, math.rad(-45), 0))
 	CityLifeService.spawnWorkerNPC(plotFolder, "Sevkiyatçı Can", "Lojistik & Kargo", CFrame.new(plotOrigin + Vector3.new(32, 6.2, 28)))
 
 	-- 6. Kargo Malzeme Teslimat Pad'i (Sağ Yol Kenarı Yanaşma Cebi)
@@ -432,12 +432,6 @@ function IslandManager.UpdateBuildingVisuals(player: Player, plotIndex: number, 
 			print(string.format("[IslandManager] %s için %d. Proje tamamlandı! Kule vinç söküldü.", player.Name, plotIndex))
 		end
 
-		-- 2. Gökdelenin Çevresine Prestij Plaza Meydanı Eklenir
-		local existingPlaza = plot.Folder:FindFirstChild("SkyscraperPlaza")
-		if not existingPlaza then
-			SiteEquipmentBuilder.buildPlazaModel(plot.Folder, plot.Origin)
-		end
-
 		plot.UpgradePadLabel.Text = "✨ PROJE %100 TAMAMLANDI! ✨\n(Gökdelen Portföyde)"
 		plot.UpgradePadLabel.TextColor3 = Color3.fromRGB(20, 20, 20)
 		plot.UpgradePad.Color = Color3.fromRGB(80, 220, 255)
@@ -459,8 +453,6 @@ function IslandManager.UpdateBuildingVisuals(player: Player, plotIndex: number, 
 	if oldPromenade then oldPromenade:Destroy() end
 	local oldPromResidents = plot.Folder:FindFirstChild("PromenadeResidents")
 	if oldPromResidents then oldPromResidents:Destroy() end
-	local oldProps = plot.Folder:FindFirstChild("UrbanProps")
-	if oldProps then oldProps:Destroy() end
 	local oldResidents = plot.Folder:FindFirstChild("CityResidents")
 	if oldResidents then oldResidents:Destroy() end
 
@@ -471,9 +463,6 @@ function IslandManager.UpdateBuildingVisuals(player: Player, plotIndex: number, 
 
 		-- 2. Promenade Yaya ve Kafe Müşteri Simülasyonu
 		CityLifeService.spawnPromenadeResidents(plot.Folder, plot.Origin, level)
-
-		-- 3. Kentsel Yaşam Objeleri (Otobüs Durağı, Yangın Musluğu, Çöp Kovaları, Sivil Otomobil)
-		CityLifeService.spawnUrbanProps(plot.Folder, plot.Origin)
 
 		-- 4. Otoyol Kaldırımı Sivil Sakinleri (Yayalar)
 		local resFolder = Instance.new("Folder")

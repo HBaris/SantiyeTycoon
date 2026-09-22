@@ -220,32 +220,32 @@ local function createBuilderHUD()
 		if engineers then hudEngineers.Text = NumberFormat.FormatEngineers(engineers) end
 	end)
 
-	-- 3. Sağ Alttaki Hızlandır Butonu (Canlı Sarı Kart, Siyah Yazı)
+	-- 3. Sağ Alttaki Hızlandır Butonu (Kompakt ve Şık Sarı Kart, Siyah Yazı)
 	local hammerBtn = Instance.new("TextButton")
 	hammerBtn.Name = "HammerQuickButton"
-	hammerBtn.Size = UDim2.new(0, 220, 0, 64)
-	hammerBtn.Position = UDim2.new(1, -240, 1, -85)
+	hammerBtn.Size = UDim2.new(0, 135, 0, 42)
+	hammerBtn.Position = UDim2.new(1, -150, 1, -55)
 	hammerBtn.BackgroundColor3 = Color3.fromRGB(255, 195, 40)
-	hammerBtn.Text = "⚡ HIZLANDIR\n(ÇEKİÇ VUR!)"
+	hammerBtn.Text = "⚡ HIZLANDIR\n(Çekiç Vur)"
 	hammerBtn.TextColor3 = Color3.fromRGB(20, 20, 20) -- SİYAH YAZI
 	hammerBtn.TextStrokeTransparency = 1 -- PARLAMA YOK
 	hammerBtn.Font = Enum.Font.FredokaOne
-	hammerBtn.TextSize = 16
+	hammerBtn.TextSize = 13
 	hammerBtn.Parent = screenGui
 
 	local btnCorner = Instance.new("UICorner")
-	btnCorner.CornerRadius = UDim.new(0, 14)
+	btnCorner.CornerRadius = UDim.new(0, 10)
 	btnCorner.Parent = hammerBtn
 
 	local btnStroke = Instance.new("UIStroke")
 	btnStroke.Color = Color3.fromRGB(190, 115, 0)
-	btnStroke.Thickness = 3
+	btnStroke.Thickness = 2
 	btnStroke.Parent = hammerBtn
 
 	hammerBtn.MouseButton1Click:Connect(function()
-		hammerBtn.Size = UDim2.new(0, 210, 0, 58)
+		hammerBtn.Size = UDim2.new(0, 128, 0, 38)
 		task.wait(0.06)
-		hammerBtn.Size = UDim2.new(0, 220, 0, 64)
+		hammerBtn.Size = UDim2.new(0, 135, 0, 42)
 		performHammerStrike()
 	end)
 

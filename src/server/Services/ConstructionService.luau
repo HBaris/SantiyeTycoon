@@ -297,7 +297,9 @@ function ConstructionService.HookPlotPads(player: Player, plot: any)
 	local function tryUnlock(triggerPlayer: Player)
 		if triggerPlayer == player then
 			local profile = DataService.GetProfile(player)
-			if not profile then return end
+			if not profile or not profile.Plots then return end
+			local pData = profile.Plots[plotIndex]
+			if not pData or pData.BuildingLevel < 5 then return end
 			local plotCount = 0
 			for _ in pairs(profile.Plots) do plotCount += 1 end
 			Network.OpenProjectSelectionEvent:FireClient(player, plotCount + 1)
@@ -341,19 +343,7 @@ function ConstructionService.HookPlotPads(player: Player, plot: any)
 		end)
 	end
 
-	-- 5. Yeni Şantiye Pad'i: Touched, Click ve Prompt
-	local debounceUnlock = false
-	plot.UnlockPad.Touched:Connect(function(hit)
-		if debounceUnlock then return end
-		local hitPlayer = Players:GetPlayerFromCharacter(hit.Parent)
-		if hitPlayer == player then
-			debounceUnlock = true
-			tryUnlock(hitPlayer)
-			task.wait(1.5)
-			debounceUnlock = false
-		end
-	end)
-
+	-- 5. Yeni Şantiye Pad'i: Sadece İsteğe Bağlı Tıklama veya E Tuşu (Asla Touched ile kendiliğinden açılmaz)
 	if plot.UnlockPadClick then
 		plot.UnlockPadClick.MouseClick:Connect(function(clickPlayer)
 			tryUnlock(clickPlayer)
@@ -401,6 +391,17 @@ function ConstructionService.HandleUpgradeBuilding(player: Player, plotIndex: nu
 
 		-- İstemci ekran arayüzünü anında güncelle
 		Network.SyncBuildingEvent:FireClient(player, nextLevel, plotIndex)
+
+		-- Seviye 5 (Gökdelen) tamamlandığında 1 defaya mahsus yeni proje seçim modalını aç
+		if nextLevel >= 5 then
+			task.delay(2.0, function()
+				if player.Parent then
+					local plotCount = 0
+					for _ in pairs(profile.Plots) do plotCount += 1 end
+					Network.OpenProjectSelectionEvent:FireClient(player, plotCount + 1)
+				end
+			end)
+		end
 	end
 end
 
