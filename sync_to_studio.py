@@ -157,6 +157,12 @@ def main():
             "class": "ModuleScript"
         },
         {
+            "path": os.path.join(base_dir, "server", "Services", "CustomizerService.luau"),
+            "parent": 'game:GetService("ServerScriptService"):WaitForChild("Server"):WaitForChild("Services")',
+            "name": "CustomizerService",
+            "class": "ModuleScript"
+        },
+        {
             "path": os.path.join(base_dir, "server", "Services", "ConstructionService.luau"),
             "parent": 'game:GetService("ServerScriptService"):WaitForChild("Server"):WaitForChild("Services")',
             "name": "ConstructionService",
@@ -215,6 +221,12 @@ def main():
             "path": os.path.join(base_dir, "client", "GarageUI.client.luau"),
             "parent": 'game:GetService("StarterPlayer"):WaitForChild("StarterPlayerScripts"):WaitForChild("Client")',
             "name": "GarageUI",
+            "class": "LocalScript"
+        },
+        {
+            "path": os.path.join(base_dir, "client", "DevCustomizerUI.client.luau"),
+            "parent": 'game:GetService("StarterPlayer"):WaitForChild("StarterPlayerScripts"):WaitForChild("Client")',
+            "name": "DevCustomizerUI",
             "class": "LocalScript"
         },
     ]

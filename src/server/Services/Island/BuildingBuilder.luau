@@ -195,10 +195,12 @@ function BuildingBuilder.buildBuildingModel(
 	parent: Instance,
 	origin: Vector3,
 	level: number,
-	projectType: string?
+	projectType: string?,
+	customScaleMultiplier: number?
 ): Model
 	local groundY = origin.Y + 2 -- Zemin kotu
 	local template = getReadyModel(level)
+	local scaleMult = customScaleMultiplier or 1.0
 
 	if projectType == "MultiBuilding" then
 		-- ====================================================================
@@ -214,7 +216,7 @@ function BuildingBuilder.buildBuildingModel(
 
 		for idx, offset in ipairs(mCfg.offsets) do
 			local bPos = origin + offset
-			local sub = createSingleBuilding(template, bPos, mCfg.targetWidth, mCfg.yaw, groundY)
+			local sub = createSingleBuilding(template, bPos, mCfg.targetWidth * scaleMult, mCfg.yaw, groundY)
 			sub.Name = string.format("Block_%d", idx)
 			sub.Parent = containerModel
 			if not firstPrimary and sub.PrimaryPart then
@@ -230,7 +232,7 @@ function BuildingBuilder.buildBuildingModel(
 		-- TEKLİ PROJE (Standart Tek Heybetli Ana Bina)
 		-- ====================================================================
 		local sCfg = SINGLE_CONFIGS[level] or { targetWidth = 44, yaw = 0 }
-		local singleModel = createSingleBuilding(template, origin, sCfg.targetWidth, sCfg.yaw, groundY)
+		local singleModel = createSingleBuilding(template, origin, sCfg.targetWidth * scaleMult, sCfg.yaw, groundY)
 		singleModel.Name = "BuildingModel"
 		singleModel:SetAttribute("IsMultiBuilding", false)
 		singleModel:SetAttribute("SubBuildingCount", 1)

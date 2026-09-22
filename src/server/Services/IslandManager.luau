@@ -598,7 +598,8 @@ function IslandManager.UpdateBuildingVisuals(player: Player, plotIndex: number, 
 	if level >= 4 then
 		-- 1. Açık Hava Çarşısı / Promenade Meydanı ve Müstakil Butik Pavyonlar
 		local totalRent = IslandManager.GetCommercialRent(level)
-		CommercialBuilder.buildPromenade(plot.Folder, plot.Origin, level, totalRent)
+		local customConfig = DataService.GetCustomizer(player)
+		CommercialBuilder.buildPromenade(plot.Folder, plot.Origin, level, totalRent, customConfig)
 
 		-- 2. Promenade Yaya ve Kafe Müşteri Simülasyonu
 		CityLifeService.spawnPromenadeResidents(plot.Folder, plot.Origin, level)
@@ -733,6 +734,21 @@ function IslandManager.PlaceServiceVisual(player: Player, plotIndex: number, ser
 	-- Hizmet binası konumu: Parselin sağ arka köşesi
 	local serviceCF = CFrame.new(plot.Origin + Vector3.new(24, 0, -15)) * CFrame.Angles(0, math.rad(-90), 0)
 	ServiceBuildingManager.BuildServiceVisual(serviceFolder, serviceType, serviceCF)
+end
+
+function IslandManager.RebuildPromenade(player: Player, plotIndex: number)
+	local plot = IslandManager.GetPlot(player, plotIndex)
+	if not plot or not plot.Folder then return end
+
+	local profile = DataService.GetProfile(player)
+	local level = (profile and profile.Plots and profile.Plots[plotIndex] and profile.Plots[plotIndex].BuildingLevel) or 1
+	local customConfig = DataService.GetCustomizer(player)
+	local totalRent = IslandManager.GetCommercialRent(level)
+
+	local oldPromenade = plot.Folder:FindFirstChild("CommercialPromenade")
+	if oldPromenade then oldPromenade:Destroy() end
+
+	CommercialBuilder.buildPromenade(plot.Folder, plot.Origin, math.max(4, level), totalRent, customConfig)
 end
 
 return IslandManager

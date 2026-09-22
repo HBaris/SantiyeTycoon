@@ -55,6 +55,10 @@ local function createDefaultProfile()
 			Car = { Speed = 0, Torque = 0, Cargo = 0 },
 		},
 		CargoCarried = 0,
+		Customizer = {
+			Scales = {},
+			Slots = {},
+		},
 		Plots = {
 			[1] = {
 				BuildingLevel = 1,
@@ -257,5 +261,36 @@ game:BindToClose(function()
 		DataService.SavePlayer(player)
 	end
 end)
+
+function DataService.GetCustomizer(player: Player)
+	local profile = profiles[player]
+	if profile then
+		if not profile.Customizer then
+			profile.Customizer = { Scales = {}, Slots = {} }
+		end
+		return profile.Customizer
+	end
+	return { Scales = {}, Slots = {} }
+end
+
+function DataService.SetModelScale(player: Player, modelKey: string, scale: number)
+	local customizer = DataService.GetCustomizer(player)
+	customizer.Scales[modelKey] = scale
+end
+
+function DataService.GetModelScale(player: Player, modelKey: string): number
+	local customizer = DataService.GetCustomizer(player)
+	return customizer.Scales[modelKey] or 1.0
+end
+
+function DataService.SetPromenadeSlot(player: Player, slotIndex: number, shopId: string)
+	local customizer = DataService.GetCustomizer(player)
+	customizer.Slots[tostring(slotIndex)] = shopId
+end
+
+function DataService.GetPromenadeSlot(player: Player, slotIndex: number): string?
+	local customizer = DataService.GetCustomizer(player)
+	return customizer.Slots[tostring(slotIndex)]
+end
 
 return DataService

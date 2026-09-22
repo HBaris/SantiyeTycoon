@@ -210,7 +210,8 @@ function CommercialBuilder.buildPromenade(
 	parent: Instance,
 	plotOrigin: Vector3,
 	level: number,
-	totalRent: number
+	totalRent: number,
+	customConfig: { Slots: { [string]: string }?, Scales: { [string]: number }? }?
 ): Model
 	local promenadeModel = Instance.new("Model")
 	promenadeModel.Name = "CommercialPromenade"
@@ -219,10 +220,10 @@ function CommercialBuilder.buildPromenade(
 	local promCenterX = pX - 22
 	local promCenterZ = pZ + 2
 
-	-- Geniş Cadde Zemin Platformu (Mat Koyu Arduvaz Taş Zemin - Asla Parlamaz)
+	-- Geniş Cadde Zemin Platformu (Mat Koyu Arduvaz Taş Zemin - Genişletilmiş Ferah Kaldırımlar)
 	createPart(
 		promenadeModel, "PromenadePavement",
-		Vector3.new(24, 0.4, 64),
+		Vector3.new(28, 0.4, 68),
 		CFrame.new(promCenterX, pY, promCenterZ),
 		Color3.fromRGB(38, 40, 44),
 		Enum.Material.Slate,
@@ -230,57 +231,37 @@ function CommercialBuilder.buildPromenade(
 	)
 
 	-- Çarşı Giriş Takı
-	local gateCF = CFrame.new(promCenterX, pY, promCenterZ + 31)
+	local gateCF = CFrame.new(promCenterX, pY, promCenterZ + 33)
 	CommercialBuilder.buildEntranceSign(promenadeModel, gateCF, totalRent)
 
-	-- 1. Taş Fırın & Patisserie
-	local bakeryReady = getReadyCommercialModel("Bakery")
-	if bakeryReady then
-		local bModel = instantiateReadyModel(bakeryReady, CFrame.new(promCenterX - 5, pY, promCenterZ + 18), 12, 90)
-		bModel.Name = "Shop_Bakery"
-		bModel.Parent = promenadeModel
-	end
+	local slotsConfig = (customConfig and customConfig.Slots) or {}
+	local scalesConfig = (customConfig and customConfig.Scales) or {}
 
-	-- 2. Gross Süpermarket
-	local marketReady = getReadyCommercialModel("Market")
-	if marketReady then
-		local mModel = instantiateReadyModel(marketReady, CFrame.new(promCenterX - 5, pY, promCenterZ + 3), 13, 90)
-		mModel.Name = "Shop_Market"
-		mModel.Parent = promenadeModel
-	end
+	-- 6 Çarşı Yuvası (Slotlar), Gerçekçi Boyutlar ve Dinamik Seçim
+	local slotDefinitions = {
+		[1] = { default = "Bakery", cf = CFrame.new(promCenterX - 6, pY, promCenterZ + 18), baseSize = 20, yaw = 90 },
+		[2] = { default = "Market", cf = CFrame.new(promCenterX - 6, pY, promCenterZ + 2), baseSize = 22, yaw = 90 },
+		[3] = { default = "Fountain", cf = CFrame.new(promCenterX + 6, pY, promCenterZ + 10), baseSize = 16, yaw = 0 },
+		[4] = { default = "Barber", cf = CFrame.new(promCenterX - 6, pY, promCenterZ - 12), baseSize = 20, yaw = 90, minLevel = 4 },
+		[5] = { default = "PetShop", cf = CFrame.new(promCenterX - 6, pY, promCenterZ - 24), baseSize = 18, yaw = 90, minLevel = 4 },
+		[6] = { default = "Restaurant", cf = CFrame.new(promCenterX + 6, pY, promCenterZ - 12), baseSize = 20, yaw = -90, minLevel = 4 },
+	}
 
-	-- 3. Süs Havuzu ve Fıskiye
-	local fountainReady = getReadyCommercialModel("Fountain")
-	if fountainReady then
-		local fModel = instantiateReadyModel(fountainReady, CFrame.new(promCenterX + 4, pY, promCenterZ + 10), 8, 0)
-		fModel.Name = "FountainPool"
-		fModel.Parent = promenadeModel
-	end
-
-	-- Seviye 5 Ekstra Dükkanlar
-	if level >= 5 then
-		-- 4. VIP Kuaför
-		local barberReady = getReadyCommercialModel("Barber")
-		if barberReady then
-			local barModel = instantiateReadyModel(barberReady, CFrame.new(promCenterX - 5, pY, promCenterZ - 12), 12, 90)
-			barModel.Name = "Shop_Barber"
-			barModel.Parent = promenadeModel
-		end
-
-		-- 5. Pati Pet Shop
-		local petReady = getReadyCommercialModel("PetShop")
-		if petReady then
-			local petModel = instantiateReadyModel(petReady, CFrame.new(promCenterX - 5, pY, promCenterZ - 24), 11, 90)
-			petModel.Name = "Shop_PetShop"
-			petModel.Parent = promenadeModel
-		end
-
-		-- 6. Bistro Kafe
-		local restReady = getReadyCommercialModel("Restaurant")
-		if restReady then
-			local rModel = instantiateReadyModel(restReady, CFrame.new(promCenterX + 4, pY, promCenterZ - 12), 11, -90)
-			rModel.Name = "Shop_Restaurant"
-			rModel.Parent = promenadeModel
+	for slotIdx, slotData in ipairs(slotDefinitions) do
+		local chosenShop = slotsConfig[tostring(slotIdx)] or slotData.default
+		if chosenShop and chosenShop ~= "None" and chosenShop ~= "Empty" then
+			if slotsConfig[tostring(slotIdx)] or (not slotData.minLevel or level >= slotData.minLevel) then
+				local ready = getReadyCommercialModel(chosenShop)
+				if ready then
+					local scaleMult = scalesConfig[string.format("Shop_Slot%d", slotIdx)] or scalesConfig[chosenShop] or 1.0
+					local finalSize = math.clamp(slotData.baseSize * scaleMult, 6, 45)
+					local shopModel = instantiateReadyModel(ready, slotData.cf, finalSize, slotData.yaw)
+					shopModel.Name = string.format("Shop_Slot%d_%s", slotIdx, chosenShop)
+					shopModel:SetAttribute("SlotIndex", slotIdx)
+					shopModel:SetAttribute("ShopId", chosenShop)
+					shopModel.Parent = promenadeModel
+				end
+			end
 		end
 	end
 

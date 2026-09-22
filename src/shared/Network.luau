@@ -55,6 +55,12 @@ if RunService:IsServer() then
 	Network.SetZoneFunction = ensureRemote("SetZoneFunction", true)
 	Network.BuildServiceFunction = ensureRemote("BuildServiceFunction", true)
 	Network.SyncCityStatsEvent = ensureRemote("SyncCityStatsEvent", false)
+
+	-- 🛠️ Tasarım & Geliştirme Motoru (Customizer Engine) Remoteleri
+	Network.CustomizeModelEvent = ensureRemote("CustomizeModelEvent", false)
+	Network.ChangePromenadeSlotEvent = ensureRemote("ChangePromenadeSlotEvent", false)
+	Network.SpawnAssetOnPlotEvent = ensureRemote("SpawnAssetOnPlotEvent", false)
+	Network.GetCustomizerStateFunction = ensureRemote("GetCustomizerStateFunction", true)
 else
 	remoteFolder = ReplicatedStorage:WaitForChild(FOLDER_NAME) :: Folder
 
@@ -88,6 +94,12 @@ else
 	Network.SetZoneFunction = remoteFolder:WaitForChild("SetZoneFunction") :: RemoteFunction
 	Network.BuildServiceFunction = remoteFolder:WaitForChild("BuildServiceFunction") :: RemoteFunction
 	Network.SyncCityStatsEvent = remoteFolder:WaitForChild("SyncCityStatsEvent") :: RemoteEvent
+
+	-- 🛠️ Tasarım & Geliştirme Motoru (Customizer Engine) Remoteleri
+	Network.CustomizeModelEvent = remoteFolder:WaitForChild("CustomizeModelEvent") :: RemoteEvent
+	Network.ChangePromenadeSlotEvent = remoteFolder:WaitForChild("ChangePromenadeSlotEvent") :: RemoteEvent
+	Network.SpawnAssetOnPlotEvent = remoteFolder:WaitForChild("SpawnAssetOnPlotEvent") :: RemoteEvent
+	Network.GetCustomizerStateFunction = remoteFolder:WaitForChild("GetCustomizerStateFunction") :: RemoteFunction
 end
 
 return Network
