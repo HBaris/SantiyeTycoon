@@ -490,10 +490,7 @@ local function btn(text: string, color: Color3, size: UDim2, pos: UDim2, onClick
 end
 
 local function applyNudge(offset: Vector3)
-	if not selectedModel then
-		selNameLabel.Text = "⚠️ Lütfen önce bir nesne seçin!"
-		return
-	end
+	if not selectedModel then selNameLabel.Text = "⚠️ Lütfen önce bir nesne seçin!" return end
 	Network.CustomizeModelEvent:FireServer(currentPlotIndex, selectedModel.Name, "Nudge", offset)
 	task.delay(0.12, refreshSelectionInfo)
 end
@@ -506,10 +503,8 @@ end
 
 local function applyDelete()
 	if not selectedModel then return end
-	local targetName = selectedModel.Name
-	Network.CustomizeModelEvent:FireServer(currentPlotIndex, targetName, "Delete")
-	updateSelection(nil)
-	task.delay(0.2, refreshPlotObjectsList)
+	Network.CustomizeModelEvent:FireServer(currentPlotIndex, selectedModel.Name, "Delete")
+	updateSelection(nil); task.delay(0.2, refreshPlotObjectsList)
 end
 
 local function applyRotate(deg: number)
@@ -682,12 +677,16 @@ local function getPlotOrigin(): Vector3
 end
 
 local function setGameplayHUDVisible(vis: boolean)
-	for _, name in ipairs({ "BuilderHUD", "UpgradeUI", "GarageUI" }) do
-		local g = playerGui:FindFirstChild(name)
-		if g and g:IsA("ScreenGui") then
-			g.Enabled = vis
-		end
+	for _, n in ipairs({ "CityStatsGui", "UpgradeScreenGui", "BuilderHUD", "GarageScreenGui", "VehicleHUD", "ProjectSelectionScreen" }) do
+		local g = playerGui:FindFirstChild(n)
+		if g and g:IsA("ScreenGui") then g.Enabled = vis end
 	end
+	local StarterGui = game:GetService("StarterGui")
+	pcall(function()
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, vis)
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, vis)
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, vis)
+	end)
 end
 
 -- Aç/Kapa Etkileşimi (360° Kuş Bakışı Kamera Entegrasyonu & Oyun Döngüsünü Susturma)
@@ -696,7 +695,6 @@ local function togglePanel()
 	toggleBtn.BackgroundColor3 = panel.Visible and Color3.fromRGB(60, 70, 90) or Color3.fromRGB(35, 40, 50)
 	cameraBar.Visible = panel.Visible
 	setGameplayHUDVisible(not panel.Visible)
-	pcall(function() game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Chat, not panel.Visible) end)
 	if panel.Visible then
 		CustomizerCameraController.Enable(getPlotOrigin())
 		refreshPlotObjectsList()
@@ -708,6 +706,7 @@ local function togglePanel()
 end
 
 panel:GetPropertyChangedSignal("Visible"):Connect(function()
+	setGameplayHUDVisible(not panel.Visible)
 	if panel.Visible then refreshPlotObjectsList() end
 end)
 

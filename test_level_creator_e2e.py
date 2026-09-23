@@ -116,6 +116,10 @@ def main():
     task.wait(0.2)
     local scaledSize = spawnedTruck:GetExtentsSize()
 
+    -- 6. Clean up test model so the plot remains 100% clean and empty!
+    Network.CustomizeModelEvent:FireServer(1, spawnedTruck.Name, "Delete")
+    task.wait(0.3)
+
     return game:GetService("HttpService"):JSONEncode({
         success = true,
         modelName = spawnedTruck.Name,
@@ -125,7 +129,8 @@ def main():
         groundedY = groundedY,
         groundDiff = afterUpY - groundedY,
         afterNudgePos = { X = afterNudgePos.X, Y = afterNudgePos.Y, Z = afterNudgePos.Z },
-        scaledSize = { X = scaledSize.X, Y = scaledSize.Y, Z = scaledSize.Z }
+        scaledSize = { X = scaledSize.X, Y = scaledSize.Y, Z = scaledSize.Z },
+        modelDeleted = spawnedTruck.Parent == nil
     })
     """
     res3 = client.call_tool("execute_luau", {"studio_id": studio_id, "datamodel_type": "Client", "code": test_level_creator_code})
@@ -134,41 +139,48 @@ def main():
     print(json.dumps(data3, indent=2, ensure_ascii=True))
 
     # =========================================================================
-    # STEP 4: Camera View 1 - Level Creator Panel & Selected Model on Plot
+    # STEP 4: Camera View 1 - Level Creator Panel & Clean Empty Plot (No Gameplay HUDs!)
     # =========================================================================
     cam_script1 = """
     local Players = game:GetService("Players")
     local player = Players.LocalPlayer or Players:GetPlayers()[1]
+    local pg = player:WaitForChild("PlayerGui")
     local Camera = workspace.CurrentCamera
     Camera.CameraType = Enum.CameraType.Scriptable
     
     local plotName = string.format("Plot_%s_1", player.Name)
     local plotFolder = workspace:FindFirstChild(plotName)
-    local truck = nil
-    for _, ch in ipairs(plotFolder:GetChildren()) do
-        if ch:IsA("Model") and ch.Name:find("Custom_") then
-            truck = ch
-            break
-        end
-    end
-    local truckPos = truck and truck:GetPivot().Position or Vector3.new(3, 8.4, -4)
-    local camPos = truckPos + Vector3.new(20, 16, 26)
+    local ground = plotFolder and plotFolder:FindFirstChild("PlotGround")
+    local plotCenter = ground and ground.Position or Vector3.new(0, 4.4, 0)
+    local camPos = Vector3.new(-38, 48, 42)
 
-    Camera.CFrame = CFrame.lookAt(camPos, truckPos)
+    Camera.CFrame = CFrame.lookAt(camPos, plotCenter)
+    
+    local cityStats = pg:FindFirstChild("CityStatsGui")
+    local upgrade = pg:FindFirstChild("UpgradeScreenGui")
+    local builder = pg:FindFirstChild("BuilderHUD")
+    local garage = pg:FindFirstChild("GarageScreenGui")
+
     return game:GetService("HttpService"):JSONEncode({
         camPos = { camPos.X, camPos.Y, camPos.Z },
-        target = { truckPos.X, truckPos.Y, truckPos.Z }
+        target = { plotCenter.X, plotCenter.Y, plotCenter.Z },
+        cityStatsDisabled = cityStats and (not cityStats.Enabled),
+        upgradeDisabled = upgrade and (not upgrade.Enabled),
+        builderDisabled = builder and (not builder.Enabled),
+        garageDisabled = garage and (not garage.Enabled)
     })
     """
     res_c1 = client.call_tool("execute_luau", {"studio_id": studio_id, "datamodel_type": "Client", "code": cam_script1})
     c1_data = json.loads(res_c1.get("content", [{}])[0].get("text", "{}"))
+    print("\n--- HUD SUPPRESSION VERIFICATION ---")
+    print(json.dumps(c1_data, indent=2, ensure_ascii=True))
     time.sleep(1)
 
     cap1 = client.call_tool("screen_capture", {
         "studio_id": studio_id,
         "capture_id": "level_creator_ui_verified",
-        "camera_position": c1_data.get("camPos", [23, 24, 22]),
-        "look_at_position": c1_data.get("target", [3, 8.4, -4])
+        "camera_position": c1_data.get("camPos", [-38, 48, 42]),
+        "look_at_position": c1_data.get("target", [0, 4.4, 0])
     })
     for item in cap1.get("content", []):
         if item.get("type") == "image":
