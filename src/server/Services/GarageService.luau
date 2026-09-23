@@ -508,10 +508,12 @@ function GarageService.EnsureGarageEnvironment()
 	folder.Name = "GarageFacility"
 	folder.Parent = Workspace
 
-	local depotX, depotZ = -70, 55
+	local depotX, depotZ = 15, 105
 
-	-- Garaj & Depo Zemin Platformu (Asfalt Park Alanı - Otoyol üst yüzeyiyle tam sıfır kotunda)
+	-- Garaj & Depo Zemin Platformu (Asfalt Park Alanı - Otoyolun güney tarafında, Showroom'dan tamamen izole)
 	createPart(folder, "GarageDepotFloor", Vector3.new(70, 0.4, 50), CFrame.new(depotX, 4.2, depotZ), Color3.fromRGB(55, 55, 60), Enum.Material.Asphalt, true)
+	-- Otoyoldan Garaja Geçiş Bağlantı Yolu
+	createPart(folder, "GarageDriveway", Vector3.new(26, 0.4, 30), CFrame.new(depotX, 4.2, 72), Color3.fromRGB(48, 48, 52), Enum.Material.Asphalt, true)
 
 	-- Ana Lojistik Malzeme Deposu Binası
 	createPart(folder, "DepotBuilding", Vector3.new(34, 14, 24), CFrame.new(depotX - 12, 11, depotZ - 10), Color3.fromRGB(160, 100, 45), Enum.Material.CorrodedMetal, true)
@@ -635,7 +637,7 @@ function GarageService.SpawnVehicle(player: Player, vehicleType: string)
 		playerVehicles[player] = nil
 	end
 
-	local depotX, depotZ = -70, 55
+	local depotX, depotZ = 15, 105
 	local spawnCFrame = CFrame.new(depotX + 16, 5.5, depotZ + 8) * CFrame.Angles(0, math.rad(-90), 0)
 
 	local vehicleModel = buildVehicleModel(player, vehicleType, spawnCFrame)

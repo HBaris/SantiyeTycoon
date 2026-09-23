@@ -93,43 +93,74 @@ function CustomizerService.Initialize()
 				if targetX and targetZ then
 					local clampedX = math.clamp(targetX, origin.X - 86, origin.X + 86)
 					local clampedZ = math.clamp(targetZ, origin.Z - 86, origin.Z + 86)
-
 					local newRot = CFrame.Angles(0, math.rad(targetYaw), 0)
-					model:PivotTo(CFrame.new(clampedX, origin.Y, clampedZ) * newRot)
 
-					-- Zemin hizalama (minY'yi parsel zemin kotuna sıfırla)
-					local currentPivot = model:GetPivot()
-					local minY = math.huge
-					for _, p in ipairs(model:GetDescendants()) do
-						if p:IsA("BasePart") then
-							minY = math.min(minY, p.Position.Y - (p.Size.Y / 2))
+					if value.ManualY and value.Y then
+						local manualY = math.clamp(tonumber(value.Y) or origin.Y, origin.Y - 5, origin.Y + 80)
+						model:PivotTo(CFrame.new(clampedX, manualY, clampedZ) * newRot)
+					else
+						model:PivotTo(CFrame.new(clampedX, origin.Y, clampedZ) * newRot)
+						-- Otomatik Zemin hizalama
+						local currentPivot = model:GetPivot()
+						local minY = math.huge
+						for _, p in ipairs(model:GetDescendants()) do
+							if p:IsA("BasePart") then
+								minY = math.min(minY, p.Position.Y - (p.Size.Y / 2))
+							end
 						end
+						local isPromenade = model:IsDescendantOf(plotFolder:FindFirstChild("CommercialPromenade") or plotFolder)
+						local groundY = origin.Y + (isPromenade and 2.2 or 2.0)
+						local shiftY = groundY - minY
+						model:PivotTo(currentPivot + Vector3.new(0, shiftY, 0))
 					end
 
-					local isPromenade = model:IsDescendantOf(plotFolder:FindFirstChild("CommercialPromenade") or plotFolder)
-					local groundY = origin.Y + (isPromenade and 2.2 or 2.0)
-					local shiftY = groundY - minY
-					local finalCF = currentPivot + Vector3.new(0, shiftY, 0)
-					model:PivotTo(finalCF)
-
+					local finalCF = model:GetPivot()
 					DataService.SetModelPosition(player, targetName, {
 						X = finalCF.Position.X,
 						Y = finalCF.Position.Y,
 						Z = finalCF.Position.Z,
 						Yaw = targetYaw
 					})
-					print(string.format("[CustomizerService] %s modeli %s için (%.1f, %.1f) konumuna yerleştirildi.", targetName, player.Name, clampedX, clampedZ))
+					print(string.format("[CustomizerService] %s modeli %s için (%.1f, %.1f, %.1f) konumuna yerleştirildi.", targetName, player.Name, finalCF.Position.X, finalCF.Position.Y, finalCF.Position.Z))
 				end
 			end
 
 		elseif action == "Nudge" then
 			if typeof(value) == "Vector3" then
-				local clamped = Vector3.new(
-					math.clamp(value.X, -10, 10),
-					0,
-					math.clamp(value.Z, -10, 10)
-				)
-				model:PivotTo(model:GetPivot() + clamped)
+				local currentPivot = model:GetPivot()
+				local newX = math.clamp(currentPivot.Position.X + value.X, origin.X - 86, origin.X + 86)
+				local newY = math.clamp(currentPivot.Position.Y + value.Y, origin.Y - 5, origin.Y + 80)
+				local newZ = math.clamp(currentPivot.Position.Z + value.Z, origin.Z - 86, origin.Z + 86)
+				local offset = Vector3.new(newX, newY, newZ) - currentPivot.Position
+				model:PivotTo(currentPivot + offset)
+			end
+
+		elseif action == "SnapGround" then
+			-- Modelin alt noktasını tam zemin kotuna sıfırla
+			local currentPivot = model:GetPivot()
+			local minY = math.huge
+			for _, p in ipairs(model:GetDescendants()) do
+				if p:IsA("BasePart") then
+					minY = math.min(minY, p.Position.Y - (p.Size.Y / 2))
+				end
+			end
+			local isPromenade = model:IsDescendantOf(plotFolder:FindFirstChild("CommercialPromenade") or plotFolder)
+			local groundY = origin.Y + (isPromenade and 2.2 or 2.0)
+			local shiftY = groundY - minY
+			model:PivotTo(currentPivot + Vector3.new(0, shiftY, 0))
+			print(string.format("[CustomizerService] %s modeli %s için zemine kilitlendi.", targetName, player.Name))
+
+		elseif action == "SetScale" then
+			local targetScale = tonumber(value)
+			if targetScale and targetScale >= 0.2 and targetScale <= 5.0 then
+				model:ScaleTo(targetScale)
+				DataService.SetModelScale(player, targetName, targetScale)
+			end
+
+		elseif action == "Delete" then
+			if model.Name:sub(1, 7) == "Custom_" or model.Name:sub(1, 8) == "Preview_" then
+				model:Destroy()
+				print(string.format("[CustomizerService] %s modeli %s tarafından silindi.", targetName, player.Name))
 			end
 		end
 	end)

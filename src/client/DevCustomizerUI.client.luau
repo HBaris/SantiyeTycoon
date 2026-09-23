@@ -134,11 +134,11 @@ cancelBtn.MouseButton1Click:Connect(function()
 	if stopDraggingRef then stopDraggingRef(false) end
 end)
 
--- 2. Ana Panel (Drawer Card)
+-- 2. Ana Panel (Drawer Card - Sürüklenebilir & Chat Bölgesinden Uzak)
 local panel = Instance.new("Frame")
 panel.Name = "CustomizerPanel"
-panel.Size = UDim2.new(0, 380, 0, 540)
-panel.Position = UDim2.new(0, 190, 0.5, -270)
+panel.Size = UDim2.new(0, 390, 0, 560)
+panel.Position = UDim2.new(0, 20, 0.5, -280)
 panel.BackgroundColor3 = Color3.fromRGB(25, 28, 35)
 panel.BackgroundTransparency = 0.04
 panel.BorderSizePixel = 0
@@ -147,7 +147,7 @@ panel.Parent = screenGui
 corner(panel, 14)
 stroke(panel, Color3.fromRGB(55, 60, 75), 2)
 
--- Başlık Çubuğu
+-- Başlık Çubuğu (Tut-Sürükle Özellikli)
 local header = Instance.new("Frame")
 header.Name = "Header"
 header.Size = UDim2.new(1, 0, 0, 46)
@@ -155,6 +155,35 @@ header.BackgroundColor3 = Color3.fromRGB(35, 40, 50)
 header.BorderSizePixel = 0
 header.Parent = panel
 corner(header, 14)
+
+local draggingHeader = false
+local dragStartPos = Vector2.zero
+local frameStartPos = UDim2.new()
+
+header.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		draggingHeader = true
+		dragStartPos = Vector2.new(input.Position.X, input.Position.Y)
+		frameStartPos = panel.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				draggingHeader = false
+			end
+		end)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if draggingHeader and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		local delta = Vector2.new(input.Position.X, input.Position.Y) - dragStartPos
+		panel.Position = UDim2.new(
+			frameStartPos.X.Scale,
+			frameStartPos.X.Offset + delta.X,
+			frameStartPos.Y.Scale,
+			frameStartPos.Y.Offset + delta.Y
+		)
+	end
+end)
 
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(0.8, 0, 1, 0)
@@ -204,37 +233,25 @@ local function createTabPage(index: number): Frame
 	return page
 end
 
-for i, tName in ipairs(tabNames) do
-	local tBtn = Instance.new("TextButton")
-	tBtn.Size = UDim2.new(1 / #tabNames, -4, 1, -4)
-	tBtn.Position = UDim2.new((i - 1) * (1 / #tabNames), 2, 0, 2)
-	tBtn.BackgroundColor3 = (i == 1) and Color3.fromRGB(45, 55, 75) or Color3.fromRGB(25, 28, 35)
-	tBtn.Text = tName
-	tBtn.TextColor3 = (i == 1) and Color3.fromRGB(255, 225, 80) or Color3.fromRGB(180, 185, 195)
-	tBtn.Font = Enum.Font.FredokaOne
-	tBtn.TextSize = 12
-	tBtn.Parent = tabBar
-	corner(tBtn, 6)
-
-	table.insert(tabButtons, tBtn)
-	table.insert(tabPages, createTabPage(i))
-end
-
 local function switchTab(index: number)
 	activeTab = index
 	for i, btn in ipairs(tabButtons) do
 		btn.BackgroundColor3 = (i == index) and Color3.fromRGB(45, 55, 75) or Color3.fromRGB(25, 28, 35)
 		btn.TextColor3 = (i == index) and Color3.fromRGB(255, 225, 80) or Color3.fromRGB(180, 185, 195)
-	end
-	for i, page in ipairs(tabPages) do
-		page.Visible = (i == index)
+		tabPages[i].Visible = (i == index)
 	end
 end
 
-for i, btn in ipairs(tabButtons) do
-	btn.MouseButton1Click:Connect(function()
-		switchTab(i)
-	end)
+for i, tName in ipairs(tabNames) do
+	local tBtn = Instance.new("TextButton")
+	tBtn.Size, tBtn.Position = UDim2.new(1 / #tabNames, -4, 1, -4), UDim2.new((i - 1) * (1 / #tabNames), 2, 0, 2)
+	tBtn.BackgroundColor3 = (i == 1) and Color3.fromRGB(45, 55, 75) or Color3.fromRGB(25, 28, 35)
+	tBtn.Text, tBtn.TextColor3 = tName, (i == 1) and Color3.fromRGB(255, 225, 80) or Color3.fromRGB(180, 185, 195)
+	tBtn.Font, tBtn.TextSize, tBtn.Parent = Enum.Font.FredokaOne, 12, tabBar
+	corner(tBtn, 6)
+	tBtn.MouseButton1Click:Connect(function() switchTab(i) end)
+	table.insert(tabButtons, tBtn)
+	table.insert(tabPages, createTabPage(i))
 end
 
 -- ============================================================================
@@ -244,19 +261,19 @@ local page1 = tabPages[1]
 
 -- Seçilen Nesne Bilgi Kartı
 local infoCard = Instance.new("Frame")
-infoCard.Size = UDim2.new(1, 0, 0, 75)
+infoCard.Size = UDim2.new(1, 0, 0, 68)
 infoCard.BackgroundColor3 = Color3.fromRGB(32, 36, 46)
 infoCard.Parent = page1
 corner(infoCard, 8)
 
 local selNameLabel = Instance.new("TextLabel")
 selNameLabel.Size = UDim2.new(0.9, 0, 0.45, 0)
-selNameLabel.Position = UDim2.new(0.05, 0, 0.08, 0)
+selNameLabel.Position = UDim2.new(0.05, 0, 0.06, 0)
 selNameLabel.BackgroundTransparency = 1
 selNameLabel.Text = "Seçili: (Bir nesne seçin)"
 selNameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 selNameLabel.Font = Enum.Font.FredokaOne
-selNameLabel.TextSize = 14
+selNameLabel.TextSize = 13
 selNameLabel.TextXAlignment = Enum.TextXAlignment.Left
 selNameLabel.Parent = infoCard
 
@@ -264,17 +281,17 @@ local selDimLabel = Instance.new("TextLabel")
 selDimLabel.Size = UDim2.new(0.9, 0, 0.45, 0)
 selDimLabel.Position = UDim2.new(0.05, 0, 0.52, 0)
 selDimLabel.BackgroundTransparency = 1
-selDimLabel.Text = "Boyutlar: --"
+selDimLabel.Text = "Konum & Boyut: --"
 selDimLabel.TextColor3 = Color3.fromRGB(140, 220, 170)
 selDimLabel.Font = Enum.Font.GothamBold
-selDimLabel.TextSize = 12
+selDimLabel.TextSize = 11
 selDimLabel.TextXAlignment = Enum.TextXAlignment.Left
 selDimLabel.Parent = infoCard
 
 -- Hızlı Nesne Seçici Dropdown / Buton Listesi
 local pickListFrame = Instance.new("ScrollingFrame")
-pickListFrame.Size = UDim2.new(1, 0, 0, 120)
-pickListFrame.Position = UDim2.new(0, 0, 0, 85)
+pickListFrame.Size = UDim2.new(1, 0, 0, 80)
+pickListFrame.Position = UDim2.new(0, 0, 0, 74)
 pickListFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
 pickListFrame.ScrollBarThickness = 5
 pickListFrame.CanvasSize = UDim2.new(0, 0, 0, 360)
@@ -284,6 +301,18 @@ corner(pickListFrame, 8)
 local plLayout = Instance.new("UIListLayout")
 plLayout.Padding = UDim.new(0, 4)
 plLayout.Parent = pickListFrame
+
+local function refreshSelectionInfo()
+	if selectedModel and selectedModel.Parent then
+		local cf, size = selectedModel:GetBoundingBox()
+		local curScale = (selectedModel.GetScale and selectedModel:GetScale()) or 1.0
+		selNameLabel.Text = "Seçili: " .. selectedModel.Name
+		selDimLabel.Text = string.format("X:%.1f Y:%.1f Z:%.1f | %.1fx%.1fx%.1f (%.1fx)", cf.Position.X, cf.Position.Y, cf.Position.Z, size.X, size.Y, size.Z, curScale)
+	else
+		selNameLabel.Text = "Seçili: (Bir nesne seçin)"
+		selDimLabel.Text = "Konum & Boyut: --"
+	end
+end
 
 local function updateSelection(model: Model?)
 	selectedModel = model
@@ -298,13 +327,10 @@ local function updateSelection(model: Model?)
 	if model then
 		selectionHighlight.Adornee = model
 		selectionHighlight.Parent = model
-		local _, size = model:GetBoundingBox()
-		selNameLabel.Text = "Seçili: " .. model.Name
-		selDimLabel.Text = string.format("Boyut: %.1f x %.1f x %.1f stud", size.X, size.Y, size.Z)
+		refreshSelectionInfo()
 	else
 		selectionHighlight.Adornee = nil
-		selNameLabel.Text = "Seçili: (Hiçbiri)"
-		selDimLabel.Text = "Boyutlar: --"
+		refreshSelectionInfo()
 	end
 end
 
@@ -399,19 +425,11 @@ local function refreshPlotObjectsList()
 	local function addPickItem(name: string, targetModel: Model)
 		count = count + 1
 		local btn = Instance.new("TextButton")
-		btn.Size = UDim2.new(1, -8, 0, 30)
-		btn.BackgroundColor3 = Color3.fromRGB(35, 40, 52)
-		btn.Text = "  📦 " .. name
-		btn.TextColor3 = Color3.fromRGB(220, 225, 235)
-		btn.Font = Enum.Font.FredokaOne
-		btn.TextSize = 12
-		btn.TextXAlignment = Enum.TextXAlignment.Left
-		btn.Parent = pickListFrame
+		btn.Size, btn.BackgroundColor3 = UDim2.new(1, -8, 0, 30), Color3.fromRGB(35, 40, 52)
+		btn.Text, btn.TextColor3 = "  📦 " .. name, Color3.fromRGB(220, 225, 235)
+		btn.Font, btn.TextSize, btn.TextXAlignment, btn.Parent = Enum.Font.FredokaOne, 12, Enum.TextXAlignment.Left, pickListFrame
 		corner(btn, 6)
-
-		btn.MouseButton1Click:Connect(function()
-			updateSelection(targetModel)
-		end)
+		btn.MouseButton1Click:Connect(function() updateSelection(targetModel) end)
 	end
 
 	-- Ana Bina
@@ -440,120 +458,110 @@ local function refreshPlotObjectsList()
 	pickListFrame.CanvasSize = UDim2.new(0, 0, 0, count * 35)
 end
 
--- Canlı Ölçeklendirme Butonları (ScaleTo)
-local scaleSection = Instance.new("Frame")
-scaleSection.Size = UDim2.new(1, 0, 0, 130)
-scaleSection.Position = UDim2.new(0, 0, 0, 215)
-scaleSection.BackgroundColor3 = Color3.fromRGB(28, 32, 40)
-scaleSection.Parent = page1
-corner(scaleSection, 8)
+-- ============================================================================
+-- LEVEL CREATOR GELİŞMİŞ DÜZENLEME PANELİ (Yükseklik, Konum, Döndürme, Ölçek)
+-- ============================================================================
+local ctrlSection = Instance.new("Frame")
+ctrlSection.Size = UDim2.new(1, 0, 0, 260)
+ctrlSection.Position = UDim2.new(0, 0, 0, 160)
+ctrlSection.BackgroundColor3 = Color3.fromRGB(26, 30, 38)
+ctrlSection.Parent = page1
+corner(ctrlSection, 8)
 
-local scaleTitle = Instance.new("TextLabel")
-scaleTitle.Size = UDim2.new(0.9, 0, 0, 24)
-scaleTitle.Position = UDim2.new(0.05, 0, 0, 6)
-scaleTitle.BackgroundTransparency = 1
-scaleTitle.Text = "⚖️ CANLI BOYUTLANDIRMA (BÜYÜT / KÜÇÜLT)"
-scaleTitle.TextColor3 = Color3.fromRGB(255, 215, 60)
-scaleTitle.Font = Enum.Font.FredokaOne
-scaleTitle.TextSize = 12
-scaleTitle.TextXAlignment = Enum.TextXAlignment.Left
-scaleTitle.Parent = scaleSection
+local ctrlTitle = Instance.new("TextLabel")
+ctrlTitle.Size = UDim2.new(0.92, 0, 0, 22)
+ctrlTitle.Position = UDim2.new(0.04, 0, 0, 4)
+ctrlTitle.BackgroundTransparency = 1
+ctrlTitle.Text = "🎛️ SEVİYE TASARIMCI KONTROLLERİ (LEVEL CREATOR)"
+ctrlTitle.TextColor3 = Color3.fromRGB(255, 215, 60)
+ctrlTitle.Font = Enum.Font.FredokaOne
+ctrlTitle.TextSize = 11
+ctrlTitle.TextXAlignment = Enum.TextXAlignment.Left
+ctrlTitle.Parent = ctrlSection
 
-local function applyScaleRatio(ratio: number)
+local function btn(text: string, color: Color3, size: UDim2, pos: UDim2, onClick: () -> ()): TextButton
+	local b = Instance.new("TextButton")
+	b.Size, b.Position, b.BackgroundColor3 = size, pos, color
+	b.Text, b.TextColor3, b.Font, b.TextSize = text, Color3.fromRGB(255, 255, 255), Enum.Font.FredokaOne, 11
+	b.Parent = ctrlSection
+	corner(b, 6)
+	b.MouseButton1Click:Connect(onClick)
+	return b
+end
+
+local function applyNudge(offset: Vector3)
 	if not selectedModel then
 		selNameLabel.Text = "⚠️ Lütfen önce bir nesne seçin!"
 		return
 	end
-	Network.CustomizeModelEvent:FireServer(currentPlotIndex, selectedModel.Name, "Scale", ratio)
-	task.delay(0.2, function()
-		if selectedModel then
-			local _, size = selectedModel:GetBoundingBox()
-			selDimLabel.Text = string.format("Yeni Boyut: %.1f x %.1f x %.1f stud", size.X, size.Y, size.Z)
-		end
-	end)
+	Network.CustomizeModelEvent:FireServer(currentPlotIndex, selectedModel.Name, "Nudge", offset)
+	task.delay(0.12, refreshSelectionInfo)
 end
 
-local scaleButtons = {
-	{ text = "[-] %25 Küçült", ratio = 0.8 },
-	{ text = "[+] %25 Büyüt", ratio = 1.25 },
-	{ text = "1.5x Yap", ratio = 1.5 },
-	{ text = "2.0x Yap", ratio = 2.0 },
-}
-
-for i, sb in ipairs(scaleButtons) do
-	local sBtn = Instance.new("TextButton")
-	sBtn.Size = UDim2.new(0.46, 0, 0, 36)
-	local col = (i - 1) % 2
-	local row = math.floor((i - 1) / 2)
-	sBtn.Position = UDim2.new(0.04 + (col * 0.48), 0, 0, 36 + (row * 42))
-	sBtn.BackgroundColor3 = (sb.ratio > 1) and Color3.fromRGB(45, 80, 55) or Color3.fromRGB(80, 50, 45)
-	sBtn.Text = sb.text
-	sBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-	sBtn.Font = Enum.Font.FredokaOne
-	sBtn.TextSize = 12
-	sBtn.Parent = scaleSection
-	corner(sBtn, 6)
-
-	sBtn.MouseButton1Click:Connect(function()
-		applyScaleRatio(sb.ratio)
-	end)
-end
-
--- Çevir & Sürükle-Taşı Kontrolleri
-local moveSection = Instance.new("Frame")
-moveSection.Size = UDim2.new(1, 0, 0, 75)
-moveSection.Position = UDim2.new(0, 0, 0, 352)
-moveSection.BackgroundColor3 = Color3.fromRGB(28, 32, 40)
-moveSection.Parent = page1
-corner(moveSection, 8)
-
-local dragBtn = Instance.new("TextButton")
-dragBtn.Size = UDim2.new(0.46, 0, 0, 38)
-dragBtn.Position = UDim2.new(0.04, 0, 0.5, -19)
-dragBtn.BackgroundColor3 = Color3.fromRGB(35, 100, 60)
-dragBtn.Text = "🖐️ Sürükle / Taşı"
-dragBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-dragBtn.Font = Enum.Font.FredokaOne
-dragBtn.TextSize = 12
-dragBtn.Parent = moveSection
-corner(dragBtn, 6)
-
-dragBtn.MouseButton1Click:Connect(function()
-	if selectedModel then
-		startDragging(selectedModel)
-	end
-end)
-
-local rotateBtn = Instance.new("TextButton")
-rotateBtn.Size = UDim2.new(0.24, 0, 0, 38)
-rotateBtn.Position = UDim2.new(0.53, 0, 0.5, -19)
-rotateBtn.BackgroundColor3 = Color3.fromRGB(45, 60, 85)
-rotateBtn.Text = "↻ 90°"
-rotateBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-rotateBtn.Font = Enum.Font.FredokaOne
-rotateBtn.TextSize = 12
-rotateBtn.Parent = moveSection
-corner(rotateBtn, 6)
-
-rotateBtn.MouseButton1Click:Connect(function()
+local function applySnapGround()
 	if not selectedModel then return end
-	Network.CustomizeModelEvent:FireServer(currentPlotIndex, selectedModel.Name, "Rotate", 90)
-end)
+	Network.CustomizeModelEvent:FireServer(currentPlotIndex, selectedModel.Name, "SnapGround")
+	task.delay(0.12, refreshSelectionInfo)
+end
 
-local clickSelectBtn = Instance.new("TextButton")
-clickSelectBtn.Size = UDim2.new(0.18, 0, 0, 38)
-clickSelectBtn.Position = UDim2.new(0.79, 0, 0.5, -19)
-clickSelectBtn.BackgroundColor3 = Color3.fromRGB(85, 70, 35)
-clickSelectBtn.Text = "🔄"
-clickSelectBtn.TextColor3 = Color3.fromRGB(255, 230, 100)
-clickSelectBtn.Font = Enum.Font.FredokaOne
-clickSelectBtn.TextSize = 13
-clickSelectBtn.Parent = moveSection
-corner(clickSelectBtn, 6)
+local function applyDelete()
+	if not selectedModel then return end
+	local targetName = selectedModel.Name
+	Network.CustomizeModelEvent:FireServer(currentPlotIndex, targetName, "Delete")
+	updateSelection(nil)
+	task.delay(0.2, refreshPlotObjectsList)
+end
 
-clickSelectBtn.MouseButton1Click:Connect(function()
-	refreshPlotObjectsList()
-end)
+local function applyRotate(deg: number)
+	if not selectedModel then return end
+	Network.CustomizeModelEvent:FireServer(currentPlotIndex, selectedModel.Name, "Rotate", deg)
+	task.delay(0.12, refreshSelectionInfo)
+end
+
+local function applyScaleRatio(ratio: number)
+	if not selectedModel then return end
+	Network.CustomizeModelEvent:FireServer(currentPlotIndex, selectedModel.Name, "Scale", ratio)
+	task.delay(0.15, refreshSelectionInfo)
+end
+
+local function applyResetScale()
+	if not selectedModel then return end
+	Network.CustomizeModelEvent:FireServer(currentPlotIndex, selectedModel.Name, "SetScale", 1.0)
+	task.delay(0.15, refreshSelectionInfo)
+end
+
+-- Satır 1: Hızlı Eylemler (Zemine İndir / Sürükle / Sil)
+btn("🎯 Zemine İndir", Color3.fromRGB(35, 110, 70), UDim2.new(0.38, 0, 0, 30), UDim2.new(0.04, 0, 0, 28), applySnapGround)
+btn("🖐️ Sürükle", Color3.fromRGB(40, 80, 130), UDim2.new(0.28, 0, 0, 30), UDim2.new(0.44, 0, 0, 28), function() if selectedModel then startDragging(selectedModel) end end)
+btn("🗑️ Sil", Color3.fromRGB(130, 40, 40), UDim2.new(0.22, 0, 0, 30), UDim2.new(0.74, 0, 0, 28), applyDelete)
+
+-- Satır 2: Dikey Yükseklik (Y Ekseni)
+btn("🔼 +1 Y", Color3.fromRGB(50, 65, 85), UDim2.new(0.22, 0, 0, 28), UDim2.new(0.04, 0, 0, 64), function() applyNudge(Vector3.new(0, 1, 0)) end)
+btn("🔽 -1 Y", Color3.fromRGB(50, 65, 85), UDim2.new(0.22, 0, 0, 28), UDim2.new(0.28, 0, 0, 64), function() applyNudge(Vector3.new(0, -1, 0)) end)
+btn("⏫ +5 Y", Color3.fromRGB(40, 55, 75), UDim2.new(0.22, 0, 0, 28), UDim2.new(0.52, 0, 0, 64), function() applyNudge(Vector3.new(0, 5, 0)) end)
+btn("⏬ -5 Y", Color3.fromRGB(40, 55, 75), UDim2.new(0.22, 0, 0, 28), UDim2.new(0.76, 0, 0, 64), function() applyNudge(Vector3.new(0, -5, 0)) end)
+
+-- Satır 3: Yatay İnce Ayar (X & Z Eksenleri)
+btn("⬅️ -1 X", Color3.fromRGB(45, 55, 70), UDim2.new(0.22, 0, 0, 28), UDim2.new(0.04, 0, 0, 98), function() applyNudge(Vector3.new(-1, 0, 0)) end)
+btn("➡️ +1 X", Color3.fromRGB(45, 55, 70), UDim2.new(0.22, 0, 0, 28), UDim2.new(0.28, 0, 0, 98), function() applyNudge(Vector3.new(1, 0, 0)) end)
+btn("⬆️ -1 Z", Color3.fromRGB(45, 55, 70), UDim2.new(0.22, 0, 0, 28), UDim2.new(0.52, 0, 0, 98), function() applyNudge(Vector3.new(0, 0, -1)) end)
+btn("⬇️ +1 Z", Color3.fromRGB(45, 55, 70), UDim2.new(0.22, 0, 0, 28), UDim2.new(0.76, 0, 0, 98), function() applyNudge(Vector3.new(0, 0, 1)) end)
+
+-- Satır 4: Döndürme (Rotation)
+btn("↺ -45°", Color3.fromRGB(60, 50, 90), UDim2.new(0.28, 0, 0, 28), UDim2.new(0.04, 0, 0, 132), function() applyRotate(-45) end)
+btn("↻ +45°", Color3.fromRGB(60, 50, 90), UDim2.new(0.28, 0, 0, 28), UDim2.new(0.34, 0, 0, 132), function() applyRotate(45) end)
+btn("↻ 90° Çevir", Color3.fromRGB(45, 60, 105), UDim2.new(0.32, 0, 0, 28), UDim2.new(0.64, 0, 0, 132), function() applyRotate(90) end)
+
+-- Satır 5: Canlı Boyutlandırma (Scale)
+btn("[-] %25", Color3.fromRGB(75, 45, 45), UDim2.new(0.18, 0, 0, 28), UDim2.new(0.04, 0, 0, 166), function() applyScaleRatio(0.8) end)
+btn("[+] %25", Color3.fromRGB(45, 75, 50), UDim2.new(0.18, 0, 0, 28), UDim2.new(0.23, 0, 0, 166), function() applyScaleRatio(1.25) end)
+btn("1.5x", Color3.fromRGB(50, 70, 85), UDim2.new(0.17, 0, 0, 28), UDim2.new(0.42, 0, 0, 166), function() applyScaleRatio(1.5) end)
+btn("2.0x", Color3.fromRGB(50, 70, 85), UDim2.new(0.17, 0, 0, 28), UDim2.new(0.60, 0, 0, 166), function() applyScaleRatio(2.0) end)
+btn("1.0x", Color3.fromRGB(80, 65, 30), UDim2.new(0.17, 0, 0, 28), UDim2.new(0.78, 0, 0, 166), applyResetScale)
+
+-- Satır 6: Liste Yenileme & Seçimi Kaldırma
+btn("🔄 Listeyi Yenile", Color3.fromRGB(40, 50, 60), UDim2.new(0.45, 0, 0, 26), UDim2.new(0.04, 0, 0, 200), refreshPlotObjectsList)
+btn("❌ Seçimi Kaldır", Color3.fromRGB(60, 40, 40), UDim2.new(0.45, 0, 0, 26), UDim2.new(0.51, 0, 0, 200), function() updateSelection(nil) end)
 
 -- ============================================================================
 -- SEKME 2: 🏛️ ÇARŞI VE YAŞAM ALANI SLOT SEÇİCİ
@@ -630,23 +638,17 @@ csLayout.Padding = UDim.new(0, 5)
 csLayout.Parent = catScroll
 
 local catalogItems = {
-	{ "Buildings", "Level_1", "🏠 Ahşap Kulübe (Lv.1)" }, { "Buildings", "Level_2", "🏡 Tuğla Malikâne (Lv.2)" },
-	{ "Buildings", "Level_3", "🏰 Lüks Villa (Lv.3)" }, { "Buildings", "Level_4", "🏢 Rezidans Apartman (Lv.4)" },
-	{ "Buildings", "Level_5", "🏙️ Prestij Gökdelen (Lv.5)" }, { "Buildings", "Level_6", "🏢 Modern İş Merkezi (Lv.6)" },
-	{ "Buildings", "Level_7", "🚒 İtfaiye İstasyonu (Lv.7)" }, { "Buildings", "Level_8", "🏥 Sağlık Kliniği (Lv.8)" },
-	{ "Buildings", "Level_9", "🏙️ Finans İkiz Kule (Lv.9)" }, { "Buildings", "Level_10", "✨ Metropolis Gökdelen (Lv.10)" },
-	{ "Vehicles", "Scooter", "🛵 Şantiye Scooter'ı" }, { "Vehicles", "Pickup", "🛻 Şantiye Kamyoneti" },
-	{ "Vehicles", "Forklift", "🚜 Şantiye Forklifti" }, { "Vehicles", "DumpTruck", "🚛 Damperli Kamyon" },
-	{ "Cargo", "BrickPallet", "🧱 Tuğla Paleti" }, { "Cargo", "CementBags", "📦 Çimento Torbaları" },
-	{ "Cargo", "CargoCrate", "🧰 Kargo Sandığı" }, { "Cargo", "SteelRebar", "⛓️ İnşaat Demiri" },
-	{ "Cargo", "OilBarrels", "🛢️ Yakıt Varilleri" }, { "Cargo", "SiteContainer", "🏠 Şantiye Konteyneri" },
-	{ "Commercial", "Bakery", "🥖 Taş Fırın Dükkanı" }, { "Commercial", "Market", "🛒 Süpermarket" },
-	{ "Commercial", "Fountain", "⛲ Süs Havuzu" }, { "Commercial", "Barber", "💈 Kuaför Salonu" },
-	{ "Commercial", "Restaurant", "🍽️ Bistro Kafe" }, { "Trees", "PineTree", "🌲 Dağ Çamı Ağacı" },
-	{ "Trees", "GardenTree", "🌳 Bahçe Meşe Ağacı" }, { "Trees", "CypressTree", "🌲 Selvi Ağacı" },
-	{ "Trees", "BoulevardTree", "🌴 Bulvar Ağacı" }, { "Trees", "HedgeBush", "🌿 Çit Çalılığı" },
-	{ "Props", "StreetLamp", "🏮 Sokak Lambası" }, { "Props", "Bench", "🪑 Park Bankı" },
-	{ "Props", "Planter", "🪴 Çiçeklik" }, { "Props", "StoneRock", "🪨 Peyzaj Kayası" },
+	{ "Buildings", "Level_1", "🏠 Ahşap Kulübe (Lv.1)" }, { "Buildings", "Level_2", "🏡 Tuğla Malikâne (Lv.2)" }, { "Buildings", "Level_3", "🏰 Lüks Villa (Lv.3)" },
+	{ "Buildings", "Level_4", "🏢 Rezidans Apartman (Lv.4)" }, { "Buildings", "Level_5", "🏙️ Prestij Gökdelen (Lv.5)" }, { "Buildings", "Level_6", "🏢 Modern İş Merkezi (Lv.6)" },
+	{ "Buildings", "Level_7", "🚒 İtfaiye İstasyonu (Lv.7)" }, { "Buildings", "Level_8", "🏥 Sağlık Kliniği (Lv.8)" }, { "Buildings", "Level_9", "🏙️ Finans İkiz Kule (Lv.9)" },
+	{ "Buildings", "Level_10", "✨ Metropolis Gökdelen (Lv.10)" }, { "Vehicles", "Scooter", "🛵 Şantiye Scooter'ı" }, { "Vehicles", "Pickup", "🛻 Şantiye Kamyoneti" },
+	{ "Vehicles", "Forklift", "🚜 Şantiye Forklifti" }, { "Vehicles", "DumpTruck", "🚛 Damperli Kamyon" }, { "Cargo", "BrickPallet", "🧱 Tuğla Paleti" },
+	{ "Cargo", "CementBags", "📦 Çimento Torbaları" }, { "Cargo", "CargoCrate", "🧰 Kargo Sandığı" }, { "Cargo", "SteelRebar", "⛓️ İnşaat Demiri" },
+	{ "Cargo", "OilBarrels", "🛢️ Yakıt Varilleri" }, { "Cargo", "SiteContainer", "🏠 Şantiye Konteyneri" }, { "Commercial", "Bakery", "🥖 Taş Fırın Dükkanı" },
+	{ "Commercial", "Market", "🛒 Süpermarket" }, { "Commercial", "Fountain", "⛲ Süs Havuzu" }, { "Commercial", "Barber", "💈 Kuaför Salonu" },
+	{ "Commercial", "Restaurant", "🍽️ Bistro Kafe" }, { "Trees", "PineTree", "🌲 Dağ Çamı Ağacı" }, { "Trees", "GardenTree", "🌳 Bahçe Meşe Ağacı" },
+	{ "Trees", "CypressTree", "🌲 Selvi Ağacı" }, { "Trees", "BoulevardTree", "🌴 Bulvar Ağacı" }, { "Trees", "HedgeBush", "🌿 Çit Çalılığı" },
+	{ "Props", "StreetLamp", "🏮 Sokak Lambası" }, { "Props", "Bench", "🪑 Park Bankı" }, { "Props", "Planter", "🪴 Çiçeklik" }, { "Props", "StoneRock", "🪨 Peyzaj Kayası" },
 }
 
 for _, item in ipairs(catalogItems) do
@@ -694,6 +696,7 @@ local function togglePanel()
 	toggleBtn.BackgroundColor3 = panel.Visible and Color3.fromRGB(60, 70, 90) or Color3.fromRGB(35, 40, 50)
 	cameraBar.Visible = panel.Visible
 	setGameplayHUDVisible(not panel.Visible)
+	pcall(function() game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Chat, not panel.Visible) end)
 	if panel.Visible then
 		CustomizerCameraController.Enable(getPlotOrigin())
 		refreshPlotObjectsList()
@@ -731,7 +734,6 @@ RunService.RenderStepped:Connect(function()
 			local hitPoint = ray.Origin + ray.Direction * t
 			local clampedX = math.clamp(hitPoint.X, origin.X - 85, origin.X + 85)
 			local clampedZ = math.clamp(hitPoint.Z, origin.Z - 85, origin.Z + 85)
-
 			local targetRot = CFrame.Angles(0, math.rad(dragYaw), 0)
 			draggedModel:PivotTo(CFrame.new(clampedX, groundY, clampedZ) * targetRot)
 
@@ -759,28 +761,35 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		if isDragging and not gameProcessed then
 			stopDragging(true)
 		elseif panel.Visible and not gameProcessed then
-			-- 3D Sahne veya Kenardaki Showroom Rafından Tıklayarak Seçme
 			local mousePos = UserInputService:GetMouseLocation()
 			local ray = Camera:ScreenPointToRay(mousePos.X, mousePos.Y)
 			local plotFolder = Workspace:FindFirstChild(string.format("Plot_%s_%d", localPlayer.Name, currentPlotIndex))
-			if plotFolder then
-				local showroom = plotFolder:FindFirstChild("ShowroomPalette")
-				local filterList = { plotFolder }
-				if showroom then table.insert(filterList, showroom) end
+			local showroom = plotFolder and plotFolder:FindFirstChild("ShowroomPalette")
+			local prom = plotFolder and plotFolder:FindFirstChild("CommercialPromenade")
 
-				local rayParams = RaycastParams.new()
-				rayParams.FilterType = Enum.RaycastFilterType.Include
-				rayParams.FilterDescendantsInstances = filterList
-				local hit = Workspace:Raycast(ray.Origin, ray.Direction * 1000, rayParams)
-				if hit and hit.Instance then
-					local clicked = hit.Instance:FindFirstAncestorOfClass("Model")
-					if clicked then
-						updateSelection(clicked)
+			local char = localPlayer.Character
+			local rayParams = RaycastParams.new()
+			rayParams.FilterType = Enum.RaycastFilterType.Exclude
+			rayParams.FilterDescendantsInstances = char and { char } or {}
+
+			local hit = Workspace:Raycast(ray.Origin, ray.Direction * 1500, rayParams)
+			if hit and hit.Instance then
+				local cur: Instance? = hit.Instance
+				local top: Model? = nil
+				while cur and cur ~= Workspace do
+					if cur:IsA("Model") then
+						if plotFolder and (cur.Parent == plotFolder or (showroom and cur.Parent == showroom) or (prom and cur.Parent == prom)) then
+							top = cur
+							break
+						end
+						top = cur
 					end
+					cur = cur.Parent
 				end
+				if top and top ~= Workspace then updateSelection(top) end
 			end
 		end
 	end
 end)
 
-print("🛠️ DevCustomizerUI (360° Kuş Bakışı Kamera & Sürükle-Bırak Motoru) Aktif. [F4]")
+print("🛠️ DevCustomizerUI (360° Kuş Bakışı Kamera & Seviye Tasarımcısı) Aktif. [F4]")
