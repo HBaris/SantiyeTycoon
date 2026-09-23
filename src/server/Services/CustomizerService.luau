@@ -84,24 +84,26 @@ function CustomizerService.Initialize()
 			model:PivotTo(pivot * CFrame.Angles(0, math.rad(angleDeg), 0))
 			print(string.format("[CustomizerService] %s modeli %s için %d° döndürüldü.", targetName, player.Name, angleDeg))
 
-		elseif action == "SetCFrame" or action == "Move" then
+		elseif action == "SetPosition" or action == "SetCFrame" or action == "Move" then
 			if typeof(value) == "table" then
 				local targetX = tonumber(value.X)
+				local targetY = tonumber(value.Y)
 				local targetZ = tonumber(value.Z)
-				local targetYaw = tonumber(value.Yaw) or 0
+				local currentPivot = model:GetPivot()
+				local currentRot = currentPivot - currentPivot.Position
+				local targetYaw = tonumber(value.Yaw)
+				local newRot = targetYaw and CFrame.Angles(0, math.rad(targetYaw), 0) or currentRot
 
 				if targetX and targetZ then
-					local clampedX = math.clamp(targetX, origin.X - 86, origin.X + 86)
-					local clampedZ = math.clamp(targetZ, origin.Z - 86, origin.Z + 86)
-					local newRot = CFrame.Angles(0, math.rad(targetYaw), 0)
+					local clampedX = math.clamp(targetX, origin.X - 100, origin.X + 100)
+					local clampedZ = math.clamp(targetZ, origin.Z - 100, origin.Z + 100)
 
-					if value.ManualY and value.Y then
-						local manualY = math.clamp(tonumber(value.Y) or origin.Y, origin.Y - 5, origin.Y + 80)
+					if targetY or (value.ManualY and value.Y) then
+						local manualY = math.clamp(targetY or tonumber(value.Y) or origin.Y, origin.Y - 5, origin.Y + 80)
 						model:PivotTo(CFrame.new(clampedX, manualY, clampedZ) * newRot)
 					else
 						model:PivotTo(CFrame.new(clampedX, origin.Y, clampedZ) * newRot)
 						-- Otomatik Zemin hizalama
-						local currentPivot = model:GetPivot()
 						local minY = math.huge
 						for _, p in ipairs(model:GetDescendants()) do
 							if p:IsA("BasePart") then
@@ -110,8 +112,7 @@ function CustomizerService.Initialize()
 						end
 						local isPromenade = model:IsDescendantOf(plotFolder:FindFirstChild("CommercialPromenade") or plotFolder)
 						local groundY = origin.Y + (isPromenade and 2.2 or 2.0)
-						local shiftY = groundY - minY
-						model:PivotTo(currentPivot + Vector3.new(0, shiftY, 0))
+						model:PivotTo(model:GetPivot() + Vector3.new(0, groundY - minY, 0))
 					end
 
 					local finalCF = model:GetPivot()

@@ -145,7 +145,6 @@ function ShowroomPaletteBuilder.build(plotFolder: Instance, plotOrigin: Vector3)
 	local vehicleItems = {
 		{ folder = vehiclesFolder, id = "Scooter", label = "🛵 Şantiye Scooter'ı", width = 5 },
 		{ folder = vehiclesFolder, id = "Pickup", label = "🛻 Şantiye Kamyoneti", width = 8 },
-		{ folder = vehiclesFolder, id = "Forklift", label = "🚜 Şantiye Forklifti", width = 6.5 },
 		{ folder = vehiclesFolder, id = "DumpTruck", label = "🚛 Damperli Kamyon", width = 10 },
 		{ folder = equipFolder, id = "TowerCrane", label = "🏗️ Kule Vinç", width = 12 },
 	}

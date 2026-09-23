@@ -1,34 +1,80 @@
+import time
 import json
 from roblox_mcp_client import RobloxStudioMCPClient
 
-client = RobloxStudioMCPClient()
-studio_id = client.get_studio_id()
+def main():
+    client = RobloxStudioMCPClient()
+    studio_id = client.get_studio_id()
 
-scale_test = """
-local rs = game:GetService("ReplicatedStorage")
-local assets = rs:FindFirstChild("Assets")
-if not assets then return "NO_ASSETS" end
+    # 1. Check current sizes
+    size_check = """
+    local Players = game:GetService("Players")
+    local player = Players:GetPlayers()[1]
+    local plot = workspace:FindFirstChild(string.format("Plot_%s_1", player.Name))
+    local prom = plot and plot:FindFirstChild("CommercialPromenade")
+    local bakery = prom and prom:FindFirstChild("Shop_Slot1_Bakery")
+    local building = plot and plot:FindFirstChild("BuildingModel")
+    
+    local _, bSize = bakery:GetBoundingBox()
+    local _, buildSize = building:GetBoundingBox()
+    
+    return game:GetService("HttpService"):JSONEncode({
+        bakeryBefore = {math.round(bSize.X), math.round(bSize.Y), math.round(bSize.Z)},
+        buildingBefore = {math.round(buildSize.X), math.round(buildSize.Y), math.round(buildSize.Z)}
+    })
+    """
+    res = client.call_tool("execute_luau", {
+        "studio_id": studio_id,
+        "datamodel_type": "Client",
+        "code": size_check
+    })
+    print("Before Scale:", res.get("content", [{}])[0].get("text", ""))
 
-local sky = assets.Buildings:FindFirstChild("Level_5")
-if not sky then return "NO_SKY" end
+    # 2. Fire CustomizeModelEvent to scale bakery by 1.5x and building by 1.25x
+    scale_call = """
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local player = Players:GetPlayers()[1]
+    local Network = require(ReplicatedStorage.Shared.Network)
+    
+    Network.CustomizeModelEvent:FireServer(1, "Shop_Slot1_Bakery", "Scale", 1.5)
+    Network.CustomizeModelEvent:FireServer(1, "BuildingModel", "Scale", 1.25)
+    return "SCALE_FIRED"
+    """
+    res_scale = client.call_tool("execute_luau", {
+        "studio_id": studio_id,
+        "datamodel_type": "Client",
+        "code": scale_call
+    })
+    print("Scale Fire:", res_scale.get("content", [{}])[0].get("text", ""))
 
-local clone = sky:Clone()
-local cf, size = clone:GetBoundingBox()
-local maxHoriz = math.max(size.X, size.Z)
-local targetMax = 32
-local scaleFactor = targetMax / maxHoriz
+    time.sleep(2)
 
-clone:ScaleTo(scaleFactor)
-local ncf, nsize = clone:GetBoundingBox()
-clone:Destroy()
+    # 3. Check sizes after scale
+    size_check_after = """
+    local Players = game:GetService("Players")
+    local player = Players:GetPlayers()[1]
+    local plot = workspace:FindFirstChild(string.format("Plot_%s_1", player.Name))
+    local prom = plot and plot:FindFirstChild("CommercialPromenade")
+    local bakery = prom and prom:FindFirstChild("Shop_Slot1_Bakery")
+    local building = plot and plot:FindFirstChild("BuildingModel")
+    
+    local _, bSize = bakery:GetBoundingBox()
+    local _, buildSize = building:GetBoundingBox()
+    
+    return game:GetService("HttpService"):JSONEncode({
+        bakeryAfter = {math.round(bSize.X), math.round(bSize.Y), math.round(bSize.Z)},
+        buildingAfter = {math.round(buildSize.X), math.round(buildSize.Y), math.round(buildSize.Z)}
+    })
+    """
+    res_after = client.call_tool("execute_luau", {
+        "studio_id": studio_id,
+        "datamodel_type": "Client",
+        "code": size_check_after
+    })
+    print("After Scale:", res_after.get("content", [{}])[0].get("text", ""))
 
-return string.format("Original: (%.1f, %.1f, %.1f) -> Scaled: (%.1f, %.1f, %.1f)", size.X, size.Y, size.Z, nsize.X, nsize.Y, nsize.Z)
-"""
+    client.close()
 
-res = client.call_tool("execute_luau", {
-    "studio_id": studio_id,
-    "datamodel_type": "Edit",
-    "code": scale_test
-})
-txt = res.get("content", [{}])[0].get("text", "")
-print("ScaleTo Test:", txt)
+if __name__ == "__main__":
+    main()
