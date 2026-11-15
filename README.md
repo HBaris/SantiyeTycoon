@@ -1,5 +1,13 @@
 # 🏗️ Şantiye Tycoon (Roblox Studio)
 
+> **English summary.** Şantiye Tycoon is a construction and logistics tycoon game for Roblox, built with Roblox Studio, Luau and Rojo.
+> - Three-currency upgrade system (cash, crystals, engineers) with infinite progression.
+> - Big-number formatting.
+> - Drivable vehicle tiers that carry materials to sites.
+> - Worker NPCs and four project types (from a quick single building to a skyscraper island).
+>
+> The details below are in Turkish.
+
 Roblox Studio ve Rojo ile geliştirilmiş, modern inşaat ve lojistik tycoon oyunu.
 
 ---
