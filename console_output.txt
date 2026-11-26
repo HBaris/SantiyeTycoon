@@ -1,0 +1,38 @@
+[DataService] Studio yerel modu: Anında oturum içi bellek aktif edildi.
+========================================
+🏗️ Şantiye Tycoon (İnşaat Şirketi) Başlatılıyor...
+========================================
+[CityManager] Cities: Skylines Şehir Sistemi ve Remoteleri Aktif Edildi.
+🛠️ CustomizerService (Tasarım & Geliştirme Motoru Servisi) Aktif Edildi.
+✅ Şantiye Tycoon hazır! Müteahhitler projelerine başlayabilir.
+Failed to load sound rbxassetid://2911047518: User is not authorized to access Asset.
+Failed to load sound rbxassetid://2911047518: User is not authorized to access Asset.
+Failed to load sound rbxassetid://2911047518: User is not authorized to access Asset.
+🛠️ DevCustomizerUI (360° Kuş Bakışı Kamera & Seviye Tasarımcısı) Aktif. [F4]
+[CityStatsUI] Cities: Skylines Üst Durum Paneli ve Yönetim Menüsü Başlatıldı.
+Hello world, from client!
+Failed to load sound rbxassetid://2911047518: User is not authorized to access Asset.
+Failed to load sound rbxassetid://2911047518: User is not authorized to access Asset.
+Failed to load sound rbxassetid://2911047518: User is not authorized to access Asset.
+[CustomizerService] Garkjha yeni varlık yerleştirdi: Custom_Forklift_9371
+[CustomizerService] Custom_Forklift_9371 modeli Garkjha için zemine kilitlendi.
+[CustomizerService] Custom_Forklift_9371 modeli Garkjha için yeniden boyutlandırıldı: 1.25x (Yeni: 1.25x)
+[GarageService] Garkjha taşıtına 15 birim şantiye malzemesi yükledi.
+[CustomizerService] Garkjha yeni varlık yerleştirdi: Custom_Forklift_9432
+[CustomizerService] Custom_Forklift_9371 modeli Garkjha için zemine kilitlendi.
+[CustomizerService] Custom_Forklift_9371 modeli Garkjha için yeniden boyutlandırıldı: 1.25x (Yeni: 1.56x)
+Infinite yield possible on 'Players.Garkjha.PlayerGui.DevCustomizerHUD:WaitForChild("CustomizerCameraController")'
+Stack Begin
+Script 'AssistantCommand', Line 9
+Stack End
+🚁 [CustomizerCameraController] 360° Kuş Bakışı Kamera Aktif.
+The current thread cannot read 'Technology' (lacking capability RobloxScript)
+Stack Begin
+Script 'AssistantCommand', Line 11
+Stack End
+The current thread cannot read 'Technology' (lacking capability RobloxScript)
+Stack Begin
+Script 'AssistantCommand', Line 12
+Stack End
+🚁 [CustomizerCameraController] Standart Oyuncu Kamerasına Dönüldü.
+🚁 [CustomizerCameraController] 360° Kuş Bakışı Kamera Aktif.
